@@ -9,7 +9,6 @@ import org.koin.dsl.module
 
 val appModule = module {
     singleOf(::KarooSystemServiceProvider)
-    singleOf(::TilehuntingViewModelProvider)
     singleOf(::StatshuntersTilesProvider)
 }
 

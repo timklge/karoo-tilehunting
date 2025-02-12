@@ -2,7 +2,7 @@
     <string name="app_name">Tilehunting</string>
     <string name="extension_name">Tilehunting</string>
     <string name="explored_tiles">Explored Tiles</string>
-    <string name="explored_tiles_description">Tiles you have ridden through</string>
-    <string name="explored_tiles_trip">Trip Tiles</string>
-    <string name="explored_tiles_trip_description">Tiles you have ridden through in the current ride</string>
+    <string name="explored_tiles_description">Tiles you have epxlored</string>
+    <string name="explored_tiles_trip">Recent Tiles</string>
+    <string name="explored_tiles_trip_description">Tiles you have explored recently</string>
 </resources>

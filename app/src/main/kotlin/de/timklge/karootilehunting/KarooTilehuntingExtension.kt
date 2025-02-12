@@ -8,6 +8,7 @@ import com.mapbox.turf.TurfConversion
 import de.timklge.karootilehunting.data.GpsCoords
 import de.timklge.karootilehunting.data.UserPreferences
 import de.timklge.karootilehunting.datatypes.ExploredTilesDataType
+import de.timklge.karootilehunting.datatypes.RecentlyExploredTilesDataType
 import io.hammerhead.karooext.extension.KarooExtension
 import io.hammerhead.karooext.internal.Emitter
 import io.hammerhead.karooext.models.HidePolyline
@@ -34,13 +35,12 @@ import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import kotlin.math.roundToInt
 
-class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
+class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1") {
     companion object {
         const val TAG = "karoo-tilehunting"
     }
 
     private val karooSystem: KarooSystemServiceProvider by inject()
-    private val tilehuntingViewModelProvider: TilehuntingViewModelProvider by inject()
     private val statshuntersTilesProvider: StatshuntersTilesProvider by inject()
 
     private var updateLastKnownGpsPositionJob: Job? = null
@@ -50,7 +50,8 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
 
     override val types by lazy {
         listOf(
-            ExploredTilesDataType(karooSystem.karooSystemService, tilehuntingViewModelProvider, applicationContext),
+            ExploredTilesDataType(karooSystem.karooSystemService, applicationContext),
+            RecentlyExploredTilesDataType(karooSystem.karooSystemService, applicationContext)
         )
     }
 
@@ -75,7 +76,8 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
         val tileClusterJob = CoroutineScope(Dispatchers.IO).launch {
             val mapZoomFlow = karooSystem.stream<OnMapZoomLevel>().map { (it.zoomLevel / 2).roundToInt() * 2 }
 
-            val gpsTileFlow = gpsFlow.map { coordsToTile(it.latitude, it.longitude) }.throttle(10_000L) // flowOf(Tile(8798, 5483))
+            val gpsTileFlow = gpsFlow.map { coordsToTile(it.latitude, it.longitude) }.throttle(10_000L)
+            // val gpsTileFlow = flowOf(Tile(8798, 5483))
 
             var lastDrawnPolylines = setOf<String>() // ids
 
@@ -191,7 +193,7 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
                     val clusteredUnexploredGridPolylines = clusteredUnexploredGridLines.map {
                         ShowPolyline(id = "clustered-unexplored-grid-${it.hashCode()}",
                         encodedPolyline = it.toPolyline(5),
-                        color = applicationContext.getColor(R.color.black),
+                        color = applicationContext.getColor(R.color.gray),
                         width = 5)
                     }.toSet()
 

@@ -192,9 +192,9 @@ fun MainScreen() {
                 onClick = {
                     statshuntersDialogVisible = true
                 }) {
-                Icon(Icons.Default.Person, contentDescription = "Connect Statshunters")
+                Icon(Icons.Default.Person, contentDescription = "Connect StatsHunters")
                 Spacer(modifier = Modifier.width(5.dp))
-                Text("Connect Statshunters")
+                Text("Connect StatsHunters")
             }
 
             apply {
