@@ -22,6 +22,13 @@ data class Tile(val x: Int, val y: Int) {
                 (this.y == tile.y && (this.x == tile.x + 1 || this.x == tile.x - 1))
     }
 
+    fun isSurrounded(tiles: Set<Tile>): Boolean {
+        return tiles.contains(Tile(x + 1, y)) &&
+                tiles.contains(Tile(x - 1, y)) &&
+                tiles.contains(Tile(x, y + 1)) &&
+                tiles.contains(Tile(x, y - 1))
+    }
+
     fun getLon(zoom: Int = 14): Double {
         val n = 2.0.pow(zoom)
         return x / n * 360.0 - 180.0

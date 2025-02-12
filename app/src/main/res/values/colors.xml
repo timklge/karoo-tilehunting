@@ -6,6 +6,7 @@
 
     <color name="white">#ffffff</color>
     <color name="whiteBg">#B3FFFFFF</color>
+    <color name="gray">#787878</color>
     <color name="black">#000000</color>
     <color name="blackBg">#B3000000</color>
 
@@ -18,5 +19,5 @@
     <color name="blue">#2196F3</color>
     <color name="green">#FF009688</color>
     <color name="red">#FF5252</color>
-    <color name="lime">#0EFF00</color>
+    <color name="lime">#15FF00</color>
 </resources>

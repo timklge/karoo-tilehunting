@@ -2,15 +2,20 @@ package de.timklge.karootilehunting
 
 import android.util.Log
 import androidx.annotation.ColorRes
+import com.mapbox.geojson.Point
+import com.mapbox.turf.TurfConstants
+import com.mapbox.turf.TurfConversion
 import de.timklge.karootilehunting.data.GpsCoords
 import de.timklge.karootilehunting.data.UserPreferences
 import de.timklge.karootilehunting.datatypes.ExploredTilesDataType
 import io.hammerhead.karooext.extension.KarooExtension
 import io.hammerhead.karooext.internal.Emitter
 import io.hammerhead.karooext.models.HidePolyline
+import io.hammerhead.karooext.models.InRideAlert
 import io.hammerhead.karooext.models.MapEffect
 import io.hammerhead.karooext.models.OnLocationChanged
 import io.hammerhead.karooext.models.OnMapZoomLevel
+import io.hammerhead.karooext.models.PlayBeepPattern
 import io.hammerhead.karooext.models.ShowPolyline
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -23,6 +28,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
@@ -40,12 +46,15 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
     private var updateLastKnownGpsPositionJob: Job? = null
     private var serviceJob: Job? = null
     private var tileDownloadJob: Job? = null
+    private var addExploredTilesJob: Job? = null
 
     override val types by lazy {
         listOf(
             ExploredTilesDataType(karooSystem.karooSystemService, tilehuntingViewModelProvider, applicationContext),
         )
     }
+
+    data class ExploredTilesData(val exploredTiles: Set<Tile>, val recentlyExploredTiles: Set<Tile>)
 
     @OptIn(FlowPreview::class)
     override fun startMap(emitter: Emitter<MapEffect>) {
@@ -66,17 +75,15 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
         val tileClusterJob = CoroutineScope(Dispatchers.IO).launch {
             val mapZoomFlow = karooSystem.stream<OnMapZoomLevel>().map { (it.zoomLevel / 2).roundToInt() * 2 }
 
-            val gpsTileFlow = gpsFlow.map { coordsToTile(it.latitude, it.longitude) }.throttle(10_000L)
+            val gpsTileFlow = gpsFlow.map { coordsToTile(it.latitude, it.longitude) }.throttle(10_000L) // flowOf(Tile(8798, 5483))
 
             var lastDrawnPolylines = setOf<String>() // ids
-
-            data class ExploredTilesData(val exploredTiles: Set<Tile>, val recentlyExploredTiles: Set<Tile>)
 
             val exploredTilesFlow = applicationContext.exploredTilesDataStore.data.map {
                 val exploredTiles = it.exploredTilesList.map { tile -> Tile(tile.x, tile.y) }.toSet()
                 val recentlyExploredTiles = it.recentlyExploredTilesList.map { tile -> Tile(tile.x, tile.y) }.toSet()
 
-                ExploredTilesData(recentlyExploredTiles, exploredTiles)
+                ExploredTilesData(exploredTiles, recentlyExploredTiles)
             }
 
             val settingsFlow = applicationContext.userPreferencesDataStore.data
@@ -98,14 +105,14 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
                     val tileLoadRangeY = centerTile.y - tileLoadRadius..centerTile.y + tileLoadRadius
 
                     val insetOffset = when (mapZoom) {
-                        in 0..10 -> 150.0  // Reduced from 1000.0
-                        11 -> 100.0        // Reduced from 500.0
-                        12 -> 75.0         // Reduced from 250.0
-                        13 -> 50.0         // Reduced from 100.0
-                        14 -> 25.0         // Reduced from 50.0
-                        15 -> 15.0         // Reduced from 25.0
-                        16 -> 10.0
-                        else -> 5.0
+                        in 0..10 -> 350.0
+                        11 -> 250.0
+                        12 -> 150.0
+                        13 -> 75.0
+                        14 -> 50.0
+                        15 -> 30.0
+                        16 -> 20.0
+                        else -> 10.0
                     }
 
                     val exploredTilesInRange = exploredTilesData.exploredTiles
@@ -122,12 +129,14 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
                         .map { Tile(it.x, it.y) }.toSet()
 
                     val squareTiles = exploredTilesInRange.intersect((square?.getAllTiles() ?: emptySet()).toSet())
-                    val exploredTilesNotInSquare = exploredTilesInRange - squareTiles - recentlyExploredTiles
+                    val exploredTilesWithNeighbours = (exploredTilesInRange - squareTiles).filter { it.isSurrounded(exploredTilesData.exploredTiles) }.toSet()
+                    val otherExploredTiles = (exploredTilesInRange - squareTiles - recentlyExploredTiles - exploredTilesWithNeighbours).toSet()
                     val unexploredTiles = viewSquare.getAllTiles() - exploredTilesInRange - recentlyExploredTiles
                     Log.i(TAG, "Unexplored tiles: ${unexploredTiles.size}")
 
                     val squareCluster = clusterTiles(squareTiles).singleOrNull()
-                    val clusteredExploredTiles = clusterTiles(exploredTilesNotInSquare)
+                    val clusteredExploredTilesWithNeighbours = clusterTiles(exploredTilesWithNeighbours)
+                    val clusteredExploredTiles = clusterTiles(otherExploredTiles)
                     val clusteredUnexploredTiles = clusterTiles(unexploredTiles)
                     val clusteredRecentlyExploredTiles = clusterTiles(recentlyExploredTiles)
 
@@ -135,6 +144,7 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
                     val clusteredExploredGridLines = clusteredExploredTiles.flatMap { it.getGridPolylines() }
                     val clusteredUnexploredGridLines = clusteredUnexploredTiles.flatMap { it.getGridPolylines() }
                     val clusteredRecentlyExploredGridLines = clusteredRecentlyExploredTiles.flatMap { it.getGridPolylines() }
+                    val clusteredExploredTilesWithNeighboursGridLines = clusteredExploredTilesWithNeighbours.flatMap { it.getGridPolylines() }
 
                     fun getPolylineCommands(cluster: Cluster?, identifier: String, @ColorRes color: Int): List<ShowPolyline> {
                         return cluster?.getPolyline(insetOffset)?.map { polyline ->
@@ -151,15 +161,19 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
                     val squareClusterPolyline = getPolylineCommands(squareCluster, "square-cluster", R.color.blue).toSet()
 
                     val clusteredExploredPolylines = clusteredExploredTiles.map {
-                        getPolylineCommands(it, "clustered-explored", R.color.green)
+                        getPolylineCommands(it, "clustered-explored", R.color.red)
                     }.flatten().toSet()
 
                     val clusteredUnexploredPolylines = clusteredUnexploredTiles.map {
-                        getPolylineCommands(it, "clustered-unexplored", R.color.red)
+                        getPolylineCommands(it, "clustered-unexplored", R.color.gray)
                     }.flatten().toSet()
 
                     val clusteredRecentlyExploredPolylines = clusteredRecentlyExploredTiles.map {
                         getPolylineCommands(it, "clustered-recent", R.color.lime)
+                    }.flatten().toSet()
+
+                    val clusteredExploredTilesWithNeighboursPolylines = clusteredExploredTilesWithNeighbours.map {
+                        getPolylineCommands(it, "clustered-explored-neighbours", R.color.green      )
                     }.flatten().toSet()
 
                     val squareClusterGridPolylines = squareClusterGridLines.map { ShowPolyline(id = "square-cluster-grid-${it.hashCode()}",
@@ -170,14 +184,14 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
 
                     val clusteredExploredGridPolylines = clusteredExploredGridLines.map { ShowPolyline(id = "clustered-explored-grid-${it.hashCode()}",
                         encodedPolyline = it.toPolyline(5),
-                        color = applicationContext.getColor(R.color.green),
+                        color = applicationContext.getColor(R.color.red),
                         width = 5)
                     }.toSet()
 
                     val clusteredUnexploredGridPolylines = clusteredUnexploredGridLines.map {
                         ShowPolyline(id = "clustered-unexplored-grid-${it.hashCode()}",
                         encodedPolyline = it.toPolyline(5),
-                        color = applicationContext.getColor(R.color.red),
+                        color = applicationContext.getColor(R.color.black),
                         width = 5)
                     }.toSet()
 
@@ -188,13 +202,22 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
                         width = 5)
                     }.toSet()
 
+                    val clusteredExploredTilesWithNeighboursGridPolylines = clusteredExploredTilesWithNeighboursGridLines.map {
+                        ShowPolyline(id = "clustered-explored-neighbours-grid-${it.hashCode()}",
+                        encodedPolyline = it.toPolyline(5),
+                        color = applicationContext.getColor(R.color.green),
+                        width = 5)
+                    }.toSet()
+
                     val gridLines = if (showGridLines){
-                        clusteredExploredGridPolylines + clusteredUnexploredGridPolylines + squareClusterGridPolylines + clusteredRecentlyExploredGridPolylines
+                        clusteredExploredGridPolylines + clusteredUnexploredGridPolylines +
+                                squareClusterGridPolylines + clusteredRecentlyExploredGridPolylines + clusteredExploredTilesWithNeighboursGridPolylines
                     } else {
                         emptySet()
                     }
 
-                    val polylines = gridLines + clusteredExploredPolylines + squareClusterPolyline + clusteredUnexploredPolylines + clusteredRecentlyExploredPolylines
+                    val polylines = gridLines + clusteredExploredPolylines + squareClusterPolyline +
+                            clusteredUnexploredPolylines + clusteredRecentlyExploredPolylines + clusteredExploredTilesWithNeighboursPolylines
                     val polylineIds = polylines.associateBy { it.id }
 
                     val newPolylines = polylines.filter { it.id !in lastDrawnPolylines }.toSet()
@@ -205,7 +228,7 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
 
                     lastDrawnPolylines = polylineIds.keys
 
-                    Log.i(TAG, "Map update took ${System.currentTimeMillis() - startTime}ms")
+                    Log.i(TAG, "Map update took ${System.currentTimeMillis() - startTime}ms - added ${newPolylines.size} polylines - removed ${droppedPolylines.size} polylines - ${polylineIds.size} total")
                 }
             }
 
@@ -233,6 +256,74 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
             }
         }
 
+        addExploredTilesJob = CoroutineScope(Dispatchers.IO).launch {
+            val exploredTilesFlow = applicationContext.exploredTilesDataStore.data
+                .map {
+                    val exploredTiles = it.exploredTilesList.map { tile -> Tile(tile.x, tile.y) }.toSet()
+                    val recentlyExploredTiles = it.recentlyExploredTilesList.map { tile -> Tile(tile.x, tile.y) }.toSet()
+
+                    ExploredTilesData(exploredTiles, recentlyExploredTiles)
+                }
+
+            val locationFlow = karooSystem.stream<OnLocationChanged>()
+
+            combine(exploredTilesFlow, locationFlow) { exploredTiles, location -> exploredTiles to location }
+                .filter { (_, location) ->
+                    val tile = coordsToTile(location.lat, location.lng)
+
+                    val tileCorners = listOf(
+                        CurrentCorner.TOP_LEFT.getCoords(tile),
+                        CurrentCorner.TOP_RIGHT.getCoords(tile),
+                        CurrentCorner.BOTTOM_RIGHT.getCoords(tile),
+                        CurrentCorner.BOTTOM_LEFT.getCoords(tile)
+                    )
+
+                    val point = Point.fromLngLat(location.lng, location.lat)
+
+                    // Convert margin from meters to degrees (approximate)
+                    val margin = TurfConversion.convertLength(
+                        20.0,
+                        TurfConstants.UNIT_METERS,
+                        TurfConstants.UNIT_DEGREES
+                    )
+
+                    // Check if point is inside the tile boundaries with margin
+                    point.longitude() > tileCorners[0].longitude() + margin &&
+                            point.longitude() < tileCorners[1].longitude() - margin &&
+                            point.latitude() < tileCorners[0].latitude() - margin &&
+                            point.latitude() > tileCorners[3].latitude() + margin
+                }.filter { (exploredTiles, location) ->
+                    val tile = coordsToTile(location.lat, location.lng)
+
+                    !exploredTiles.exploredTiles.contains(tile) && !exploredTiles.recentlyExploredTiles.contains(tile)
+                }.collect { (_, location) ->
+                    Log.i(TAG, "New tile explored: ${location.lat}, ${location.lng}")
+
+                    karooSystem.karooSystemService.dispatch(
+                        InRideAlert(id = "newtile-${System.currentTimeMillis()}",
+                            icon = R.drawable.crosshair,
+                            title = "Tilehunting",
+                            detail = "New tile explored",
+                            autoDismissMs = 15_000L,
+                            backgroundColor = R.color.lime,
+                            textColor = R.color.black
+                        )
+                    )
+
+                    karooSystem.karooSystemService.dispatch(
+                        PlayBeepPattern(listOf(
+                            PlayBeepPattern.Tone(4_000, 500),
+                            PlayBeepPattern.Tone(4_500, 500),
+                            PlayBeepPattern.Tone(4_000, 500)
+                        ))
+                    )
+
+                    applicationContext.exploredTilesDataStore.updateData {
+                        it.toBuilder().addRecentlyExploredTiles(de.timklge.karootilehunting.data.Tile.newBuilder().setX(coordsToTile(location.lat, location.lng).x).setY(coordsToTile(location.lat, location.lng).y).build()).build()
+                    }
+                }
+        }
+
         tileDownloadJob = CoroutineScope(Dispatchers.IO).launch {
             applicationContext.exploredTilesDataStore.updateData {
                 val updated = it.toBuilder().setIsDownloading(false).build()
@@ -258,7 +349,7 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
 
                     applicationContext.exploredTilesDataStore.updateData {
                         it.toBuilder()
-                            .clearExploredTiles().clearRecentlyExploredTiles()
+                            .clearExploredTiles()
                             .setIsDownloading(true).setLastDownloadError("").setDownloadedActivities(0).build()
                     }
 
@@ -323,6 +414,9 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
 
         updateLastKnownGpsPositionJob?.cancel()
         updateLastKnownGpsPositionJob = null
+
+        addExploredTilesJob?.cancel()
+        addExploredTilesJob = null
 
         super.onDestroy()
     }

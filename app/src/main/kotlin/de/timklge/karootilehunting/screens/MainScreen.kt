@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
@@ -81,15 +82,18 @@ fun MainScreen() {
     var downloadedActivities by remember { mutableIntStateOf(0) }
     var exploredTilesCount by remember { mutableIntStateOf(0) }
     var squareSize by remember { mutableIntStateOf(0) }
+    var recentTilesCount by remember { mutableIntStateOf(0) }
 
     var savedDialogVisible by remember { mutableStateOf(false) }
-    var tileLoadRange by remember { mutableStateOf("10") }
+    var clearedRecentExploredTilesDialogVisible by remember { mutableStateOf(false) }
+    var tileLoadRange by remember { mutableStateOf("3") }
     var hideGrid by remember { mutableStateOf(false) }
 
     LaunchedEffect(exploredTilesStore) {
         coroutineScope.launch {
             downloadedActivities = exploredTilesStore?.downloadedActivities ?: 0
             val exploredTiles = exploredTilesStore?.exploredTilesList?.map { Tile(it.x, it.y) }?.toSet()
+            recentTilesCount = exploredTilesStore?.recentlyExploredTilesCount ?: 0
             exploredTilesCount = exploredTiles?.size ?: 0
             squareSize = exploredTiles?.let { getSquare(it)?.size } ?: 0
             hideGrid = settingsStore?.hideGridLines ?: false
@@ -118,11 +122,13 @@ fun MainScreen() {
                     Text("Activities:")
                     Text("Tiles:")
                     Text("Square:")
+                    Text("Recent:")
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text("$downloadedActivities")
                     Text("$exploredTilesCount")
                     Text("$squareSize")
+                    Text("$recentTilesCount")
                 }
             }
 
@@ -146,7 +152,7 @@ fun MainScreen() {
             if (exploredTilesStore?.isDownloading != true && !settingsStore?.statshuntersSharecode.isNullOrBlank()){
                 FilledTonalButton(modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp),
+                    .height(50.dp),
                     onClick = {
                         coroutineScope.launch {
                             ctx.exploredTilesDataStore.updateData { exploredTiles ->
@@ -160,9 +166,29 @@ fun MainScreen() {
                 }
             }
 
+            if (recentTilesCount > 0) {
+                FilledTonalButton(modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp), onClick = {
+
+                    coroutineScope.launch {
+                        ctx.exploredTilesDataStore.updateData { exploredTiles ->
+                            exploredTiles.toBuilder()
+                                .clearRecentlyExploredTiles()
+                                .build()
+                        }
+                        clearedRecentExploredTilesDialogVisible = true
+                    }
+                }) {
+                    Icon(Icons.Default.Clear, contentDescription = "Reset recent tiles")
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text("Reset recent tiles")
+                }
+            }
+
             FilledTonalButton(modifier = Modifier
                 .fillMaxWidth()
-                .height(60.dp),
+                .height(50.dp),
                 onClick = {
                     statshuntersDialogVisible = true
                 }) {
@@ -212,6 +238,15 @@ fun MainScreen() {
                         savedDialogVisible = false
                     }) { Text("OK") } },
                     text = { Text("Settings saved successfully.") }
+                )
+            }
+
+            if (clearedRecentExploredTilesDialogVisible){
+                AlertDialog(onDismissRequest = { savedDialogVisible = false },
+                    confirmButton = { Button(onClick = {
+                        savedDialogVisible = false
+                    }) { Text("OK") } },
+                    text = { Text("Recent tiles cleared.") }
                 )
             }
 
