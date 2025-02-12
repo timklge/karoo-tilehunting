@@ -1,10 +1,8 @@
 package de.timklge.karootilehunting
 
-import kotlin.math.atan
 import kotlin.math.cos
 import kotlin.math.ln
 import kotlin.math.pow
-import kotlin.math.sinh
 import kotlin.math.tan
 
 const val DEFAULT_ZOOM = 14

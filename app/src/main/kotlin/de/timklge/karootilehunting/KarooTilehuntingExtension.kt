@@ -1,6 +1,7 @@
 package de.timklge.karootilehunting
 
 import android.util.Log
+import androidx.annotation.ColorRes
 import de.timklge.karootilehunting.data.GpsCoords
 import de.timklge.karootilehunting.data.UserPreferences
 import de.timklge.karootilehunting.datatypes.ExploredTilesDataType
@@ -135,46 +136,30 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0") {
                     val clusteredUnexploredGridLines = clusteredUnexploredTiles.flatMap { it.getGridPolylines() }
                     val clusteredRecentlyExploredGridLines = clusteredRecentlyExploredTiles.flatMap { it.getGridPolylines() }
 
-                    val squareClusterPolyline = squareCluster?.getPolyline(insetOffset)?.map { polyline ->
-                        ShowPolyline(
-                            id = "square-cluster-${squareCluster.hashCode()}",
-                            encodedPolyline = polyline.toPolyline(5),
-                            color = applicationContext.getColor(R.color.blue),
-                            width = 10
-                        )
-                    } ?: emptyList()
-
-                    val clusteredExploredPolylines = clusteredExploredTiles.map {
-                        it.getPolyline(insetOffset).map { polyline ->
+                    fun getPolylineCommands(cluster: Cluster?, identifier: String, @ColorRes color: Int): List<ShowPolyline> {
+                        return cluster?.getPolyline(insetOffset)?.map { polyline ->
+                            val str = polyline.toPolyline(5)
                             ShowPolyline(
-                                id = "clustered-explored-${it.hashCode()}",
-                                encodedPolyline = polyline.toPolyline(5),
-                                color = applicationContext.getColor(R.color.green),
+                                id = "${identifier}-${str.hashCode()}",
+                                encodedPolyline = str,
+                                color = applicationContext.getColor(color),
                                 width = 10
                             )
-                        }
+                        } ?: emptyList()
+                    }
+
+                    val squareClusterPolyline = getPolylineCommands(squareCluster, "square-cluster", R.color.blue).toSet()
+
+                    val clusteredExploredPolylines = clusteredExploredTiles.map {
+                        getPolylineCommands(it, "clustered-explored", R.color.green)
                     }.flatten().toSet()
 
                     val clusteredUnexploredPolylines = clusteredUnexploredTiles.map {
-                        it.getPolyline(insetOffset).map { polyline ->
-                            ShowPolyline(
-                                id = "clustered-unexplored-${polyline.hashCode()}",
-                                encodedPolyline = polyline.toPolyline(5),
-                                color = applicationContext.getColor(R.color.red),
-                                width = 10
-                            )
-                        }
+                        getPolylineCommands(it, "clustered-unexplored", R.color.red)
                     }.flatten().toSet()
 
                     val clusteredRecentlyExploredPolylines = clusteredRecentlyExploredTiles.map {
-                        it.getPolyline(insetOffset).map { polyline ->
-                            ShowPolyline(
-                                id = "clustered-recent-${polyline.hashCode()}",
-                                encodedPolyline = polyline.toPolyline(5),
-                                color = applicationContext.getColor(R.color.lime),
-                                width = 10
-                            )
-                        }
+                        getPolylineCommands(it, "clustered-recent", R.color.lime)
                     }.flatten().toSet()
 
                     val squareClusterGridPolylines = squareClusterGridLines.map { ShowPolyline(id = "square-cluster-grid-${it.hashCode()}",
