@@ -1,0 +1,9 @@
+syntax = "proto3";
+option java_package = "de.timklge.karootilehunting.data";
+option java_multiple_files = true;
+
+message UserPreferences {
+  string statshuntersSharecode = 2;
+  uint32 tileDrawRange = 3;
+  bool hideGridLines = 4;
+}

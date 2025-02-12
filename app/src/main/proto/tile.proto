@@ -1,0 +1,18 @@
+syntax = "proto3";
+option java_package = "de.timklge.karootilehunting.data";
+option java_multiple_files = true;
+
+message Tile {
+  int32 x = 1;
+  int32 y = 2;
+}
+
+message ExploredTiles {
+  repeated Tile exploredTiles = 1;
+  repeated Tile recentlyExploredTiles = 2;
+
+  uint64 lastDownloadedAt = 3;
+  bool isDownloading = 4;
+  uint32 downloadedActivities = 5;
+  string lastDownloadError = 6;
+}

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ExtensionInfo
+    displayName="@string/extension_name"
+    icon="@drawable/crosshair"
+    id="karoo-tilehunting"
+    scansDevices="false"
+    mapLayer="true">
+
+    <DataType
+        description="@string/explored_tiles_description"
+        displayName="@string/explored_tiles"
+        graphical="false"
+        icon="@drawable/crosshair"
+        typeId="explored_tiles" />
+
+    <DataType
+        description="@string/explored_tiles_trip_description"
+        displayName="@string/explored_tiles_trip"
+        graphical="false"
+        icon="@drawable/crosshair"
+        typeId="explored_tiles_trip" />
+</ExtensionInfo>
