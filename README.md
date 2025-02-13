@@ -39,8 +39,10 @@ a sharing link that includes your activities and type in the sharing code of you
 
 After saving your code, the app will try to download the activities and your explored tiles.
 The app will then draw the outlines of your explored and unexplored tiles
-onto the map when you start a ride. Please note that it will only draw the tiles close
-to your current location, regardless of where you pan on the map. 
+onto the map when you start a ride.
+
+Please note that currently, only tiles close to your current location are drawn,
+regardless of where you pan on the map if you unlock it. 
 
 The following colors are used:
 
@@ -51,6 +53,8 @@ The following colors are used:
 
 If you ride into a new tile, the app will show an alert and draw the tile in bright green.
 You can reset the bright green colored tiles by tapping the "Reset Tiles" button in the app's menu.
+
+You can temporarily hide the tile outlines on the map by tapping the stack icon in the same way you can hide the native heatmap.
 
 You can add the count of explored tiles and count of recently explored tiles to your data pages as data fields.
 
