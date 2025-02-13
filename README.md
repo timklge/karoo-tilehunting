@@ -4,8 +4,8 @@
 [![GitHub Downloads (specific asset, all releases)](https://img.shields.io/github/downloads/timklge/karoo-tilehunting/app-release.apk)](https://github.com/timklge/karoo-tilehunting/releases)
 [![GitHub License](https://img.shields.io/github/license/timklge/karoo-tilehunting)](https://github.com/timklge/karoo-tilehunting/blob/master/LICENSE)
 
-This extension for Karoo devices adds a map overlay that shows explored tiles. Tiles can be fetched from ![statshunters.com](https://www.statshunters.com).
-You can read more about tilehunting in the ![StatsHunters FAQ](https://www.statshunters.com/faq-10-what-are-explorer-tiles).
+This extension for Karoo devices adds a map overlay that shows explored tiles. Tiles can be fetched from [statshunters.com](https://www.statshunters.com).
+You can read more about tilehunting in the [StatsHunters FAQ](https://www.statshunters.com/faq-10-what-are-explorer-tiles).
 
 Compatible with Karoo 2 and Karoo 3 devices.
 
