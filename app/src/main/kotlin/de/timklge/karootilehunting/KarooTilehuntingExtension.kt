@@ -17,6 +17,7 @@ import io.hammerhead.karooext.models.MapEffect
 import io.hammerhead.karooext.models.OnLocationChanged
 import io.hammerhead.karooext.models.OnMapZoomLevel
 import io.hammerhead.karooext.models.PlayBeepPattern
+import io.hammerhead.karooext.models.RideState
 import io.hammerhead.karooext.models.ShowPolyline
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -268,9 +269,13 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
                 }
 
             val locationFlow = karooSystem.stream<OnLocationChanged>()
+            val rideStateFlow = karooSystem.stream<RideState>()
 
-            combine(exploredTilesFlow, locationFlow) { exploredTiles, location -> exploredTiles to location }
-                .filter { (_, location) ->
+            data class StreamData(val exploredTiles: ExploredTilesData, val location: OnLocationChanged, val rideState: RideState)
+
+            combine(exploredTilesFlow, locationFlow, rideStateFlow) { exploredTiles, location, rideState -> StreamData(exploredTiles, location, rideState) }
+                .filter { (_, _, rideState) -> rideState is RideState.Recording }
+                .filter { (_, location, rideState) ->
                     val tile = coordsToTile(location.lat, location.lng)
 
                     val tileCorners = listOf(
