@@ -80,7 +80,7 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
             val gpsTileFlow = gpsFlow.map { coordsToTile(it.latitude, it.longitude) }.throttle(10_000L)
             // val gpsTileFlow = flowOf(Tile(8798, 5483))
 
-            var lastDrawnPolylines = setOf<String>() // ids
+            var lastDrawnPolylines = setOf<ShowPolyline>()
 
             val exploredTilesFlow = applicationContext.exploredTilesDataStore.data.map {
                 val exploredTiles = it.exploredTilesList.map { tile -> Tile(tile.x, tile.y) }.toSet()
@@ -221,17 +221,16 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
 
                     val polylines = gridLines + clusteredExploredPolylines + squareClusterPolyline +
                             clusteredUnexploredPolylines + clusteredRecentlyExploredPolylines + clusteredExploredTilesWithNeighboursPolylines
-                    val polylineIds = polylines.associateBy { it.id }
 
-                    val newPolylines = polylines.filter { it.id !in lastDrawnPolylines }.toSet()
-                    val droppedPolylines = lastDrawnPolylines.filter { !polylineIds.containsKey(it) }
+                    val newPolylines = polylines - lastDrawnPolylines
+                    val droppedPolylines = lastDrawnPolylines - polylines
 
-                    Log.i(TAG, "Map update took ${System.currentTimeMillis() - startTime}ms - added ${newPolylines.size} polylines - removed ${droppedPolylines.size} polylines - ${polylineIds.size} total")
+                    Log.i(TAG, "Map update took ${System.currentTimeMillis() - startTime}ms - added ${newPolylines.size} polylines - removed ${droppedPolylines.size} polylines - ${polylines.size} total")
 
                     newPolylines.forEach { emitter.onNext(it) }
-                    droppedPolylines.forEach { emitter.onNext(HidePolyline(it)) }
+                    droppedPolylines.forEach { emitter.onNext(HidePolyline(it.id)) }
 
-                    lastDrawnPolylines = polylineIds.keys
+                    lastDrawnPolylines = polylines
                 }
             }
 
