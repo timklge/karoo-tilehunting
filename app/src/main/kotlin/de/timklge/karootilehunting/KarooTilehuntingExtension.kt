@@ -1,5 +1,6 @@
 package de.timklge.karootilehunting
 
+import android.media.MediaPlayer
 import android.util.Log
 import androidx.annotation.ColorRes
 import com.mapbox.geojson.Point
@@ -58,7 +59,6 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
 
     data class ExploredTilesData(val exploredTiles: Set<Tile>, val recentlyExploredTiles: Set<Tile>)
 
-    @OptIn(FlowPreview::class)
     override fun startMap(emitter: Emitter<MapEffect>) {
         Log.d(TAG, "Starting map effect")
 
@@ -122,7 +122,7 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
                         .filter { it.x in tileLoadRangeX && it.y in tileLoadRangeY }
                         .map { Tile(it.x, it.y) }.toSet()
 
-                    Log.i(TAG, "Explored tiles: ${exploredTilesInRange.size} - Center Tile: ${centerTile} - Map Zoom: ${mapZoom}")
+                    Log.i(TAG, "Explored tiles: ${exploredTilesInRange.size} - Center Tile: $centerTile - Map Zoom: $mapZoom")
 
                     val square = getSquare(exploredTilesData.exploredTiles)
                     Log.i(TAG, "Largest square: $square")
@@ -226,12 +226,12 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
                     val newPolylines = polylines.filter { it.id !in lastDrawnPolylines }.toSet()
                     val droppedPolylines = lastDrawnPolylines.filter { !polylineIds.containsKey(it) }
 
+                    Log.i(TAG, "Map update took ${System.currentTimeMillis() - startTime}ms - added ${newPolylines.size} polylines - removed ${droppedPolylines.size} polylines - ${polylineIds.size} total")
+
                     newPolylines.forEach { emitter.onNext(it) }
                     droppedPolylines.forEach { emitter.onNext(HidePolyline(it)) }
 
                     lastDrawnPolylines = polylineIds.keys
-
-                    Log.i(TAG, "Map update took ${System.currentTimeMillis() - startTime}ms - added ${newPolylines.size} polylines - removed ${droppedPolylines.size} polylines - ${polylineIds.size} total")
                 }
             }
 
@@ -244,8 +244,12 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
         }
     }
 
+    private var mediaPlayer: MediaPlayer? = null
+
     override fun onCreate() {
         super.onCreate()
+
+        mediaPlayer = MediaPlayer.create(this, R.raw.alert6)
 
         Log.d(TAG, "Starting karoo tilehunting extension")
 
@@ -325,6 +329,8 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
                         ))
                     )
 
+                    mediaPlayer?.start()
+
                     applicationContext.exploredTilesDataStore.updateData {
                         it.toBuilder().addRecentlyExploredTiles(de.timklge.karootilehunting.data.Tile.newBuilder().setX(coordsToTile(location.lat, location.lng).x).setY(coordsToTile(location.lat, location.lng).y).build()).build()
                     }
@@ -348,9 +354,9 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
             val exploredTilesFlow = applicationContext.exploredTilesDataStore.data
 
             combine(settingsCodeFlow, exploredTilesFlow) { sharecode, exploredTiles -> sharecode to exploredTiles }
-                .filter { (_, exploredTiles) -> exploredTiles.lastDownloadedAt < System.currentTimeMillis() - 1000 * 60 * 60 * 24}
                 .map { (sharecode, exploredTiles) -> StreamData(sharecode, exploredTiles.lastDownloadedAt) }
                 .distinctUntilChanged()
+                .filter { (_, lastDownloadedAt) ->      lastDownloadedAt < System.currentTimeMillis() - 1000 * 60 * 60 * 24}
                 .collect {
                     Log.d(TAG, "Starting tile download job")
 
@@ -377,7 +383,7 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
                                 val updatedExploredTilesProto = updatedExploredTiles.map {
                                     de.timklge.karootilehunting.data.Tile.newBuilder().setX(it.x).setY(it.y).build()
                                 }
-                                Log.d(TAG, "New explored tile count: ${updatedExploredTiles.size}, ${activityCount} activities")
+                                Log.d(TAG, "New explored tile count: ${updatedExploredTiles.size}, $activityCount activities")
 
                                 exploredTiles.toBuilder()
                                     .setDownloadedActivities(activityCount)

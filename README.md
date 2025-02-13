@@ -66,3 +66,4 @@ You can add the count of explored tiles and count of recently explored tiles to 
 - Icons are from [boxicons.com](https://boxicons.com) ([MIT-licensed](icon_credits.txt))
 - Interfaces with [statshunters.com](https://www.statshunters.com)
 - Uses [karoo-ext](https://github.com/hammerheadnav/karoo-ext) (Apache2-licensed)
+- Alert sound played over bluetooth is Alert6 by RICHERlandTV - https://freesound.org/s/351545/ (CC-BY 4.0)
