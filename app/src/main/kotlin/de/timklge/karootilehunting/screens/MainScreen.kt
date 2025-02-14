@@ -49,9 +49,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.timklge.karootilehunting.Square
 import de.timklge.karootilehunting.Tile
 import de.timklge.karootilehunting.exploredTilesDataStore
-import de.timklge.karootilehunting.getSquare
 import de.timklge.karootilehunting.userPreferencesDataStore
 import io.hammerhead.karooext.KarooSystemService
 import kotlinx.coroutines.flow.first
@@ -95,7 +95,7 @@ fun MainScreen() {
             val exploredTiles = exploredTilesStore?.exploredTilesList?.map { Tile(it.x, it.y) }?.toSet()
             recentTilesCount = exploredTilesStore?.recentlyExploredTilesCount ?: 0
             exploredTilesCount = exploredTiles?.size ?: 0
-            squareSize = exploredTiles?.let { getSquare(it)?.size } ?: 0
+            squareSize = exploredTilesStore?.biggestSquareSize ?: 0
             hideGrid = settingsStore?.hideGridLines ?: false
         }
     }

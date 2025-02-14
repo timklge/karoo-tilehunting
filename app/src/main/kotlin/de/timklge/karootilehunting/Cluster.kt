@@ -7,7 +7,6 @@ import com.mapbox.turf.TurfConversion
 import kotlinx.serialization.Serializable
 import kotlin.math.abs
 import kotlin.math.atan
-import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -301,6 +300,3 @@ fun clusterTiles(tiles: Set<Tile>): List<Cluster> {
     }
     return clusters
 }
-
-// Helper function for power of 2 (since Kotlin does not have an operator for Double.pow with Int).
-private fun Double.pow(n: Int): Double = this.pow(n.toDouble())

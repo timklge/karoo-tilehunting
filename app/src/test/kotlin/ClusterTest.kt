@@ -12,7 +12,7 @@ class ClusterTest {
         val viewSquare = Square(centerTile.x - tileLoadRadius, centerTile.y - tileLoadRadius, tileLoadRadius * 2)
         val tileLoadRange = centerTile.x - tileLoadRadius..centerTile.x + tileLoadRadius
 
-        val largestSquare = getSquare(tiles)
+        val largestSquare = Square.getBiggestSquare(tiles)
 
         val tilesInSquare = tiles.filter { largestSquare?.isInside(it) == true }.toSet()
         val tilesNotInSquare = tiles - tilesInSquare

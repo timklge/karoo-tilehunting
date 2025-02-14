@@ -5,6 +5,12 @@ option java_multiple_files = true;
 message Tile {
   int32 x = 1;
   int32 y = 2;
+  repeated uint32 activityIndices = 3;
+}
+
+message Activity {
+  uint64 startTimestamp = 1;
+  string encodedPolyline = 2;
 }
 
 message ExploredTiles {
@@ -15,4 +21,10 @@ message ExploredTiles {
   bool isDownloading = 4;
   uint32 downloadedActivities = 5;
   string lastDownloadError = 6;
+
+  uint32 biggestSquareX = 7;
+  uint32 biggestSquareY = 8;
+  uint32 biggestSquareSize = 9;
+
+  repeated Activity activities = 10;
 }

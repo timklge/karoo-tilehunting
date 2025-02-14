@@ -22,16 +22,14 @@ If you are using a Karoo 3, you can use [Hammerhead's sideloading procedure](htt
 
 1. Using the browser on your phone, long-press [this download link](https://github.com/timklge/karoo-tilehunting/releases/latest/download/app-release.apk) and share it with the Hammerhead Companion app.
 2. Your karoo should show an info screen about the app now. Press "Install".
-3. Open the app from the main menu and acknowledge the API usage note.
-4. Set up your data fields as desired.
+3. Open the app from the main menu and link your StatsHunters account (see "Usage" below)
 
 If you are using a Karoo 2, you can use manual sideloading:
 
 1. Download the apk from the [releases page](https://github.com/timklge/karoo-tilehunting/releases) (or build it from source)
 2. Set up your Karoo for sideloading. DC Rainmaker has a great [step-by-step guide](https://www.dcrainmaker.com/2021/02/how-to-sideload-android-apps-on-your-hammerhead-karoo-1-karoo-2.html).
 3. Install the app by running `adb install app-release.apk`.
-4. Open the app from the main menu and acknowledge the API usage note.
-5. Set up your data fields as desired.
+4. Open the app from the main menu and link your StatsHunters account (see "Usage" below)
 
 ## Usage
 

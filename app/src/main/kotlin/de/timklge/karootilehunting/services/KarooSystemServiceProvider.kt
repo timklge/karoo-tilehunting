@@ -1,4 +1,4 @@
-package de.timklge.karootilehunting
+package de.timklge.karootilehunting.services
 
 import android.content.Context
 import android.util.Log

@@ -1,7 +1,10 @@
-package de.timklge.karootilehunting
+package de.timklge.karootilehunting.services
 
 import android.content.Context
 import android.util.Log
+import de.timklge.karootilehunting.Activity
+import de.timklge.karootilehunting.ActivityListResponse
+import de.timklge.karootilehunting.KarooTilehuntingExtension
 import io.hammerhead.karooext.models.HttpResponseState
 import io.hammerhead.karooext.models.OnHttpResponse
 import kotlinx.coroutines.Dispatchers
