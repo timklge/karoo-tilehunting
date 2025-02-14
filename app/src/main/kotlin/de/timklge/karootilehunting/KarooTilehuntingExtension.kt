@@ -149,14 +149,14 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
                     val tileLoadRangeY = centerTile.y - tileLoadRadius..centerTile.y + tileLoadRadius
 
                     val insetOffset = when (mapZoom) {
-                        in 0..10 -> 350.0
-                        11 -> 250.0
-                        12 -> 150.0
-                        13 -> 75.0
-                        14 -> 50.0
-                        15 -> 30.0
-                        16 -> 20.0
-                        else -> 10.0
+                        in 0..10 -> 175.0
+                        11 -> 125.0
+                        12 -> 75.0
+                        13 -> 37.5
+                        14 -> 25.0
+                        15 -> 15.0
+                        16 -> 10.0
+                        else -> 5.0
                     }
 
                     val exploredTilesInRange = exploredTilesData.exploredTiles
