@@ -1,8 +1,5 @@
 # Karoo Tilehunting Extension
 
-> [!IMPORTANT]  
-> App is currently in testing and not yet available for sideloading.
-
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/timklge/karoo-tilehunting/android.yml)](https://github.com/timklge/karoo-tilehunting/actions/workflows/android.yml)
 [![GitHub Downloads (specific asset, all releases)](https://img.shields.io/github/downloads/timklge/karoo-tilehunting/app-release.apk)](https://github.com/timklge/karoo-tilehunting/releases)
 [![GitHub License](https://img.shields.io/github/license/timklge/karoo-tilehunting)](https://github.com/timklge/karoo-tilehunting/blob/master/LICENSE)
