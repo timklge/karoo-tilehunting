@@ -14,6 +14,8 @@ glance = "1.1.1"
 kotlinxSerializationJson = "1.7.3"
 ktorClientAndroid = "2.3.9"
 protobufJavalite = "3.18.0"
+slf4jAndroid = "1.7.36"
+slf4jApi = "1.7.36"
 testng = "6.9.6"
 
 [plugins]
@@ -50,6 +52,8 @@ androidx-glance-appwidget-preview = { group = "androidx.glance", name = "glance-
 androidx-glance-preview = { group = "androidx.glance", name = "glance-preview", version.ref = "glance" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 protobuf-javalite = { module = "com.google.protobuf:protobuf-javalite", version.ref = "protobufJavalite" }
+slf4j-android = { module = "org.slf4j:slf4j-android", version.ref = "slf4jAndroid" }
+slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4jApi" }
 testng = { group = "org.testng", name = "testng", version.ref = "testng" }
 
 [bundles]

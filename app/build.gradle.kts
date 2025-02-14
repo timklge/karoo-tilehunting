@@ -70,6 +70,8 @@ dependencies {
     implementation(libs.androidx.glance.preview)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
+    implementation(libs.slf4j.android)
+    implementation(libs.slf4j.api)
 
     implementation(libs.ktor.client.android)
     implementation(libs.ktor.client.content.negotiation)
