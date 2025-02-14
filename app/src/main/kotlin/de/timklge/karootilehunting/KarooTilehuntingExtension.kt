@@ -1,8 +1,14 @@
 package de.timklge.karootilehunting
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.media.MediaPlayer
+import android.os.Build
 import android.util.Log
 import androidx.annotation.ColorRes
+import androidx.annotation.RequiresApi
 import com.mapbox.geojson.Point
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfConversion
@@ -57,13 +63,48 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
         )
     }
 
+    private val broadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                "de.timklge.karootilehunting.DEBUG_CLEAR_TILES" -> {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        applicationContext.exploredTilesDataStore.updateData {
+                            it.toBuilder()
+                                .clearRecentlyExploredTiles()
+                                .setLastDownloadedAt(0)
+                                .build()
+                        }
+                    }
+                }
+                "de.timklge.karootilehunting.DEBUG_GPS" -> {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        val lat = intent.getFloatExtra( "lat", 0.0f)
+                        val lng = intent.getFloatExtra("lng", 0.0f)
+
+                        if (lat != 0.0f && lng != 0.0f){
+                            applicationContext.lastKnownGpsCoordsDataStore.updateData {
+                                it.toBuilder().setLatitude(lat.toDouble()).setLongitude(lng.toDouble()).build()
+                            }
+                        }
+                    }
+                }
+                // Add more actions as needed
+            }
+        }
+    }
+
     data class ExploredTilesData(val exploredTiles: Set<Tile>, val recentlyExploredTiles: Set<Tile>)
 
     override fun startMap(emitter: Emitter<MapEffect>) {
         Log.d(TAG, "Starting map effect")
 
         val gpsFlow = flow<GpsCoords> {
-            val initialPosition = applicationContext.lastKnownGpsCoordsDataStore.data.firstOrNull()
+            applicationContext.lastKnownGpsCoordsDataStore.data.collect {
+                Log.d(TAG, "Last known GPS position: ${it.latitude}, ${it.longitude}")
+                emit(it)
+            }
+
+            /* TODO val initialPosition = applicationContext.lastKnownGpsCoordsDataStore.data.firstOrNull()
             if (initialPosition != null && initialPosition.latitude != 0.0 && initialPosition.longitude != 0.0){
                 Log.d(TAG, "Using last known GPS position: ${initialPosition.latitude}, ${initialPosition.longitude}")
                 emit(initialPosition)
@@ -71,7 +112,7 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
 
             karooSystem.stream<OnLocationChanged>().collect {
                 emit(GpsCoords.newBuilder().setLatitude(it.lat).setLongitude(it.lng).build())
-            }
+            } */
         }
 
         val tileClusterJob = CoroutineScope(Dispatchers.IO).launch {
@@ -248,6 +289,14 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
     override fun onCreate() {
         super.onCreate()
 
+        // Register the broadcast receiver
+        registerReceiver(
+            broadcastReceiver,
+            IntentFilter().apply {
+                addAction("de.timklge.karootilehunting.DEBUG_GPS")
+            }
+        )
+
         mediaPlayer = MediaPlayer.create(this, R.raw.alert6)
 
         Log.d(TAG, "Starting karoo tilehunting extension")
@@ -271,7 +320,11 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
                     ExploredTilesData(exploredTiles, recentlyExploredTiles)
                 }
 
-            val locationFlow = karooSystem.stream<OnLocationChanged>()
+            val locationFlow = applicationContext.lastKnownGpsCoordsDataStore.data.map {
+                Log.d(TAG, "Last known GPS position: ${it.latitude}, ${it.longitude}")
+
+                OnLocationChanged(lat = it.latitude, lng = it.longitude, orientation = null)
+            } // karooSystem.stream<OnLocationChanged>()
             val rideStateFlow = karooSystem.stream<RideState>()
 
             data class StreamData(val exploredTiles: ExploredTilesData, val location: OnLocationChanged, val rideState: RideState)
@@ -355,7 +408,7 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
             combine(settingsCodeFlow, exploredTilesFlow) { sharecode, exploredTiles -> sharecode to exploredTiles }
                 .map { (sharecode, exploredTiles) -> StreamData(sharecode, exploredTiles.lastDownloadedAt) }
                 .distinctUntilChanged()
-                .filter { (_, lastDownloadedAt) ->      lastDownloadedAt < System.currentTimeMillis() - 1000 * 60 * 60 * 24}
+                .filter { (_, lastDownloadedAt) -> lastDownloadedAt < System.currentTimeMillis() - 1000 * 60 * 60 * 24}
                 .collect {
                     Log.d(TAG, "Starting tile download job")
 
@@ -429,6 +482,8 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta1
 
         addExploredTilesJob?.cancel()
         addExploredTilesJob = null
+
+        unregisterReceiver(broadcastReceiver)
 
         super.onDestroy()
     }
