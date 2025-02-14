@@ -47,24 +47,15 @@ class TileDownloadService(private val applicationContext: Context, val statshunt
             combine(settingsCodeFlow, exploredTilesFlow) { sharecode, exploredTiles -> sharecode to exploredTiles }
                 .map { (sharecode, exploredTiles) -> StreamData(sharecode, exploredTiles.lastDownloadedAt) }
                 .distinctUntilChanged()
-                .filter { (_, lastDownloadedAt) -> lastDownloadedAt < System.currentTimeMillis() - 1000 * 60 * 60 * 24}
+                .filter { (_, lastDownloadedAt) -> lastDownloadedAt < System.currentTimeMillis() - 1000 * 60 * 60 * 24 * 7 }
                 .collect {
                     Log.d(TAG, "Starting tile download job")
 
                     applicationContext.exploredTilesDataStore.updateData {
                         it.toBuilder()
-                            .clearExploredTiles()
                             .setIsDownloading(true)
                             .setLastDownloadError("")
-                            .setDownloadedActivities(0)
-                            .setBiggestSquareX(0)
-                            .setBiggestSquareY(0)
-                            .setBiggestSquareSize(0)
                             .build()
-                    }
-
-                    applicationContext.activityLinesDataStore.updateData {
-                        it.toBuilder().clearActivities().build()
                     }
 
                     try {
@@ -145,7 +136,10 @@ class TileDownloadService(private val applicationContext: Context, val statshunt
                                 }
 
                                 applicationContext.activityLinesDataStore.updateData { activityLines ->
-                                    activityLines.toBuilder().addAllActivities(sortedActivityList).build()
+                                    val existingActivities = activityLines.activitiesList.map { it.id }.toSet()
+                                    val newActivities = sortedActivityList.filter { it.id !in existingActivities }
+
+                                    activityLines.toBuilder().addAllActivities(newActivities).build()
                                 }
                             }
                         }

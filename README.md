@@ -33,10 +33,11 @@ If you are using a Karoo 2, you can use manual sideloading:
 After installing this app on your Karoo, open the app from the extensions menu. Tap on the
 "Connnect StatsHunters" button to connect your account. You will need to open the
 [StatsHunters share page](https://www.statshunters.com/share) on your phone or computer, create
-a sharing link that includes your heatmap and type in the sharing code of your new link on the Karoo.
+a sharing link that includes your heatmap with tiles and activities enabled and type
+in the sharing code of your new link on the Karoo.
 
 After saving your code, the app will try to download the activities and your explored tiles.
-The app will then draw the outlines of your explored and unexplored tiles
+Make sure you are connected to WiFi for this step. The app will then draw the outlines of your explored and unexplored tiles
 onto the map when you start a ride.
 
 Please note that currently, only tiles close to your current location are drawn,

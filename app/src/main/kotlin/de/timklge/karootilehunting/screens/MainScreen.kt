@@ -290,7 +290,7 @@ fun MainScreen() {
                                 }
                             }
 
-                            Text("Go to statshunters.com/share and create a link that shares activities. Enter its sharing code below.")
+                            Text("Go to statshunters.com/share and create a link that shares your heatmap. Enter its sharing code below.")
 
                             Text(buildAnnotatedString {
                                 append("Example: statshunters.com/share/")
