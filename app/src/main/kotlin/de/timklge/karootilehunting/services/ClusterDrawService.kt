@@ -49,13 +49,13 @@ class ClusterDrawService(private val karooSystem: KarooSystemServiceProvider,
         }
     }
 
+    private var lastDrawnPolylines = setOf<ShowPolyline>()
+
     fun startJob(emitter: Emitter<MapEffect>): Job {
         val tileClusterJob = CoroutineScope(Dispatchers.IO).launch {
             val mapZoomFlow = karooSystem.stream<OnMapZoomLevel>().map { (it.zoomLevel / 2).roundToInt() * 2 }
 
             val gpsTileFlow = gpsFlow.map { coordsToTile(it.latitude, it.longitude) }.throttle(10_000L)
-
-            var lastDrawnPolylines = setOf<ShowPolyline>()
 
             val exploredTilesFlow = applicationContext.exploredTilesDataStore.data.map {
                 val exploredTiles = it.exploredTilesList.map { tile -> Tile(tile.x, tile.y) }.toSet()
@@ -75,146 +75,151 @@ class ClusterDrawService(private val karooSystem: KarooSystemServiceProvider,
             combine(exploredTilesFlow, settingsFlow, gpsTileFlow, mapZoomFlow) { exploredTiles, settings, centerTile, mapZoom -> StreamData(exploredTiles, settings, centerTile, mapZoom) }
                 .distinctUntilChanged()
                 .collect { (exploredTilesData, settings, centerTile, mapZoom) ->
-                    val startTime = System.currentTimeMillis()
-                    val tileLoadRadius = settings.tileDrawRange.let { if(it > 0) it else 3 }.coerceIn(2..5)
-                    val showGridLines = !settings.hideGridLines
-                    val viewSquare = Square(centerTile.x - tileLoadRadius, centerTile.y - tileLoadRadius, tileLoadRadius * 2)
+                    if (!settings.isDisabled){
+                        val startTime = System.currentTimeMillis()
+                        val tileLoadRadius = settings.tileDrawRange.let { if(it > 0) it else 3 }.coerceIn(2..5)
+                        val showGridLines = !settings.hideGridLines
+                        val viewSquare = Square(centerTile.x - tileLoadRadius, centerTile.y - tileLoadRadius, tileLoadRadius * 2)
 
-                    val tileLoadRangeX = centerTile.x - tileLoadRadius..centerTile.x + tileLoadRadius
-                    val tileLoadRangeY = centerTile.y - tileLoadRadius..centerTile.y + tileLoadRadius
+                        val tileLoadRangeX = centerTile.x - tileLoadRadius..centerTile.x + tileLoadRadius
+                        val tileLoadRangeY = centerTile.y - tileLoadRadius..centerTile.y + tileLoadRadius
 
-                    val insetOffset = when (mapZoom) {
-                        in 0..10 -> 175.0
-                        11 -> 125.0
-                        12 -> 75.0
-                        13 -> 37.5
-                        14 -> 25.0
-                        15 -> 15.0
-                        16 -> 10.0
-                        else -> 5.0
-                    }
+                        val insetOffset = when (mapZoom) {
+                            in 0..10 -> 175.0
+                            11 -> 125.0
+                            12 -> 75.0
+                            13 -> 37.5
+                            14 -> 25.0
+                            15 -> 15.0
+                            16 -> 10.0
+                            else -> 5.0
+                        }
 
-                    val exploredTilesInRange = exploredTilesData.exploredTiles
-                        .filter { it.x in tileLoadRangeX && it.y in tileLoadRangeY }
-                        .map { Tile(it.x, it.y) }.toSet()
+                        val exploredTilesInRange = exploredTilesData.exploredTiles
+                            .filter { it.x in tileLoadRangeX && it.y in tileLoadRangeY }
+                            .map { Tile(it.x, it.y) }.toSet()
 
-                    Log.i(TAG, "Explored tiles: ${exploredTilesInRange.size} - Center Tile: $centerTile - Map Zoom: $mapZoom")
+                        Log.i(TAG, "Explored tiles: ${exploredTilesInRange.size} - Center Tile: $centerTile - Map Zoom: $mapZoom")
 
-                    val square = exploredTilesData.square
-                    Log.i(TAG, "Largest square: $square")
+                        val square = exploredTilesData.square
+                        Log.i(TAG, "Largest square: $square")
 
-                    val recentlyExploredTiles = exploredTilesData.recentlyExploredTiles
-                        .filter { it.x in tileLoadRangeX && it.y in tileLoadRangeY }
-                        .map { Tile(it.x, it.y) }.toSet()
+                        val recentlyExploredTiles = exploredTilesData.recentlyExploredTiles
+                            .filter { it.x in tileLoadRangeX && it.y in tileLoadRangeY }
+                            .map { Tile(it.x, it.y) }.toSet()
 
-                    val squareTiles = exploredTilesInRange.intersect((square?.getAllTiles() ?: emptySet()).toSet())
-                    val exploredTilesWithNeighbours = (exploredTilesInRange - squareTiles).filter { it.isSurrounded(exploredTilesData.exploredTiles) }.toSet()
-                    val otherExploredTiles = (exploredTilesInRange - squareTiles - recentlyExploredTiles - exploredTilesWithNeighbours).toSet()
-                    val unexploredTiles = viewSquare.getAllTiles() - exploredTilesInRange - recentlyExploredTiles
-                    Log.i(TAG, "Unexplored tiles: ${unexploredTiles.size}")
+                        val squareTiles = exploredTilesInRange.intersect((square?.getAllTiles() ?: emptySet()).toSet())
+                        val exploredTilesWithNeighbours = (exploredTilesInRange - squareTiles).filter { it.isSurrounded(exploredTilesData.exploredTiles) }.toSet()
+                        val otherExploredTiles = (exploredTilesInRange - squareTiles - recentlyExploredTiles - exploredTilesWithNeighbours).toSet()
+                        val unexploredTiles = viewSquare.getAllTiles() - exploredTilesInRange - recentlyExploredTiles
+                        Log.i(TAG, "Unexplored tiles: ${unexploredTiles.size}")
 
-                    val squareCluster = clusterTiles(squareTiles).singleOrNull()
-                    val clusteredExploredTilesWithNeighbours = clusterTiles(exploredTilesWithNeighbours)
-                    val clusteredExploredTiles = clusterTiles(otherExploredTiles)
-                    val clusteredUnexploredTiles = clusterTiles(unexploredTiles)
-                    val clusteredRecentlyExploredTiles = clusterTiles(recentlyExploredTiles)
+                        val squareCluster = clusterTiles(squareTiles).singleOrNull()
+                        val clusteredExploredTilesWithNeighbours = clusterTiles(exploredTilesWithNeighbours)
+                        val clusteredExploredTiles = clusterTiles(otherExploredTiles)
+                        val clusteredUnexploredTiles = clusterTiles(unexploredTiles)
+                        val clusteredRecentlyExploredTiles = clusterTiles(recentlyExploredTiles)
 
-                    val squareClusterGridLines = squareCluster?.getGridPolylines() ?: emptyList()
-                    val clusteredExploredGridLines = clusteredExploredTiles.flatMap { it.getGridPolylines() }
-                    val clusteredUnexploredGridLines = clusteredUnexploredTiles.flatMap { it.getGridPolylines() }
-                    val clusteredRecentlyExploredGridLines = clusteredRecentlyExploredTiles.flatMap { it.getGridPolylines() }
-                    val clusteredExploredTilesWithNeighboursGridLines = clusteredExploredTilesWithNeighbours.flatMap { it.getGridPolylines() }
+                        val squareClusterGridLines = squareCluster?.getGridPolylines() ?: emptyList()
+                        val clusteredExploredGridLines = clusteredExploredTiles.flatMap { it.getGridPolylines() }
+                        val clusteredUnexploredGridLines = clusteredUnexploredTiles.flatMap { it.getGridPolylines() }
+                        val clusteredRecentlyExploredGridLines = clusteredRecentlyExploredTiles.flatMap { it.getGridPolylines() }
+                        val clusteredExploredTilesWithNeighboursGridLines = clusteredExploredTilesWithNeighbours.flatMap { it.getGridPolylines() }
 
-                    fun getPolylineCommands(cluster: Cluster?, identifier: String, @ColorRes color: Int): List<ShowPolyline> {
-                        return cluster?.getPolyline(insetOffset)?.map { polyline ->
-                            val str = polyline.toPolyline(5)
-                            ShowPolyline(
-                                id = "${identifier}-${str.hashCode()}",
-                                encodedPolyline = str,
-                                color = applicationContext.getColor(color),
-                                width = 10
-                            )
-                        } ?: emptyList()
-                    }
+                        fun getPolylineCommands(cluster: Cluster?, identifier: String, @ColorRes color: Int): List<ShowPolyline> {
+                            return cluster?.getPolyline(insetOffset)?.map { polyline ->
+                                val str = polyline.toPolyline(5)
+                                ShowPolyline(
+                                    id = "${identifier}-${str.hashCode()}",
+                                    encodedPolyline = str,
+                                    color = applicationContext.getColor(color),
+                                    width = 10
+                                )
+                            } ?: emptyList()
+                        }
 
-                    val squareClusterPolyline = getPolylineCommands(squareCluster, "square-cluster",
-                        R.color.blue
-                    ).toSet()
+                        val squareClusterPolyline = getPolylineCommands(squareCluster, "square-cluster",
+                            R.color.blue
+                        ).toSet()
 
-                    val clusteredExploredPolylines = clusteredExploredTiles.map {
-                        getPolylineCommands(it, "clustered-explored", R.color.red)
-                    }.flatten().toSet()
+                        val clusteredExploredPolylines = clusteredExploredTiles.map {
+                            getPolylineCommands(it, "clustered-explored", R.color.red)
+                        }.flatten().toSet()
 
-                    val clusteredUnexploredPolylines = clusteredUnexploredTiles.map {
-                        getPolylineCommands(it, "clustered-unexplored", R.color.gray)
-                    }.flatten().toSet()
+                        val clusteredUnexploredPolylines = clusteredUnexploredTiles.map {
+                            getPolylineCommands(it, "clustered-unexplored", R.color.gray)
+                        }.flatten().toSet()
 
-                    val clusteredRecentlyExploredPolylines = clusteredRecentlyExploredTiles.map {
-                        getPolylineCommands(it, "clustered-recent", R.color.lime)
-                    }.flatten().toSet()
+                        val clusteredRecentlyExploredPolylines = clusteredRecentlyExploredTiles.map {
+                            getPolylineCommands(it, "clustered-recent", R.color.lime)
+                        }.flatten().toSet()
 
-                    val clusteredExploredTilesWithNeighboursPolylines = clusteredExploredTilesWithNeighbours.map {
-                        getPolylineCommands(it, "clustered-explored-neighbours", R.color.green)
-                    }.flatten().toSet()
+                        val clusteredExploredTilesWithNeighboursPolylines = clusteredExploredTilesWithNeighbours.map {
+                            getPolylineCommands(it, "clustered-explored-neighbours", R.color.green)
+                        }.flatten().toSet()
 
-                    val squareClusterGridPolylines = squareClusterGridLines.map { ShowPolyline(id = "square-cluster-grid-${it.hashCode()}",
-                        encodedPolyline = it.toPolyline(5),
-                        color = applicationContext.getColor(R.color.blue),
-                        width = 5)
-                    }.toSet()
-
-                    val clusteredExploredGridPolylines = clusteredExploredGridLines.map { ShowPolyline(id = "clustered-explored-grid-${it.hashCode()}",
-                        encodedPolyline = it.toPolyline(5),
-                        color = applicationContext.getColor(R.color.red),
-                        width = 5)
-                    }.toSet()
-
-                    val clusteredUnexploredGridPolylines = clusteredUnexploredGridLines.map {
-                        ShowPolyline(id = "clustered-unexplored-grid-${it.hashCode()}",
+                        val squareClusterGridPolylines = squareClusterGridLines.map { ShowPolyline(id = "square-cluster-grid-${it.hashCode()}",
                             encodedPolyline = it.toPolyline(5),
-                            color = applicationContext.getColor(R.color.gray),
+                            color = applicationContext.getColor(R.color.blue),
                             width = 5)
-                    }.toSet()
+                        }.toSet()
 
-                    val clusteredRecentlyExploredGridPolylines = clusteredRecentlyExploredGridLines.map {
-                        ShowPolyline(id = "clustered-recent-grid-${it.hashCode()}",
+                        val clusteredExploredGridPolylines = clusteredExploredGridLines.map { ShowPolyline(id = "clustered-explored-grid-${it.hashCode()}",
                             encodedPolyline = it.toPolyline(5),
-                            color = applicationContext.getColor(R.color.lime),
+                            color = applicationContext.getColor(R.color.red),
                             width = 5)
-                    }.toSet()
+                        }.toSet()
 
-                    val clusteredExploredTilesWithNeighboursGridPolylines = clusteredExploredTilesWithNeighboursGridLines.map {
-                        ShowPolyline(id = "clustered-explored-neighbours-grid-${it.hashCode()}",
-                            encodedPolyline = it.toPolyline(5),
-                            color = applicationContext.getColor(R.color.green),
-                            width = 5)
-                    }.toSet()
+                        val clusteredUnexploredGridPolylines = clusteredUnexploredGridLines.map {
+                            ShowPolyline(id = "clustered-unexplored-grid-${it.hashCode()}",
+                                encodedPolyline = it.toPolyline(5),
+                                color = applicationContext.getColor(R.color.gray),
+                                width = 5)
+                        }.toSet()
 
-                    val gridLines = if (showGridLines){
-                        clusteredExploredGridPolylines + clusteredUnexploredGridPolylines +
-                                squareClusterGridPolylines + clusteredRecentlyExploredGridPolylines + clusteredExploredTilesWithNeighboursGridPolylines
+                        val clusteredRecentlyExploredGridPolylines = clusteredRecentlyExploredGridLines.map {
+                            ShowPolyline(id = "clustered-recent-grid-${it.hashCode()}",
+                                encodedPolyline = it.toPolyline(5),
+                                color = applicationContext.getColor(R.color.lime),
+                                width = 5)
+                        }.toSet()
+
+                        val clusteredExploredTilesWithNeighboursGridPolylines = clusteredExploredTilesWithNeighboursGridLines.map {
+                            ShowPolyline(id = "clustered-explored-neighbours-grid-${it.hashCode()}",
+                                encodedPolyline = it.toPolyline(5),
+                                color = applicationContext.getColor(R.color.green),
+                                width = 5)
+                        }.toSet()
+
+                        val gridLines = if (showGridLines){
+                            clusteredExploredGridPolylines + clusteredUnexploredGridPolylines +
+                                    squareClusterGridPolylines + clusteredRecentlyExploredGridPolylines + clusteredExploredTilesWithNeighboursGridPolylines
+                        } else {
+                            emptySet()
+                        }
+
+                        val polylines = gridLines + clusteredExploredPolylines + squareClusterPolyline +
+                                clusteredUnexploredPolylines + clusteredRecentlyExploredPolylines + clusteredExploredTilesWithNeighboursPolylines
+
+                        val newPolylines = polylines - lastDrawnPolylines
+                        val droppedPolylines = lastDrawnPolylines - polylines
+
+                        Log.i(TAG, "Map update took ${System.currentTimeMillis() - startTime}ms - added ${newPolylines.size} polylines - removed ${droppedPolylines.size} polylines - ${polylines.size} total")
+
+                        newPolylines.forEach { emitter.onNext(it) }
+                        droppedPolylines.forEach { emitter.onNext(HidePolyline(it.id)) }
+
+                        lastDrawnPolylines = polylines
                     } else {
-                        emptySet()
+                        Log.d(TAG, "Map is disabled - ${lastDrawnPolylines.size} previously drawn")
+
+                        lastDrawnPolylines.forEach { emitter.onNext(HidePolyline(it.id)) }
+                        lastDrawnPolylines = emptySet()
                     }
-
-                    val polylines = gridLines + clusteredExploredPolylines + squareClusterPolyline +
-                            clusteredUnexploredPolylines + clusteredRecentlyExploredPolylines + clusteredExploredTilesWithNeighboursPolylines
-
-                    val newPolylines = polylines - lastDrawnPolylines
-                    val droppedPolylines = lastDrawnPolylines - polylines
-
-                    Log.i(TAG, "Map update took ${System.currentTimeMillis() - startTime}ms - added ${newPolylines.size} polylines - removed ${droppedPolylines.size} polylines - ${polylines.size} total")
-
-                    newPolylines.forEach { emitter.onNext(it) }
-                    droppedPolylines.forEach { emitter.onNext(HidePolyline(it.id)) }
-
-                    lastDrawnPolylines = polylines
                 }
         }
 
         emitter.setCancellable {
-            // TODO Hide all?
-
             Log.d(TAG, "Stopping map effect")
 
             tileClusterJob.cancel()

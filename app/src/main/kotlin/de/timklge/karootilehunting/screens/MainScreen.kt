@@ -88,6 +88,7 @@ fun MainScreen() {
     var clearedRecentExploredTilesDialogVisible by remember { mutableStateOf(false) }
     var tileLoadRange by remember { mutableStateOf("3") }
     var hideGrid by remember { mutableStateOf(false) }
+    var isDisabled by remember { mutableStateOf(false) }
 
     LaunchedEffect(exploredTilesStore) {
         coroutineScope.launch {
@@ -97,6 +98,7 @@ fun MainScreen() {
             exploredTilesCount = exploredTiles?.size ?: 0
             squareSize = exploredTilesStore?.biggestSquareSize ?: 0
             hideGrid = settingsStore?.hideGridLines ?: false
+            isDisabled = settingsStore?.isDisabled ?: false
         }
     }
 
@@ -197,20 +199,28 @@ fun MainScreen() {
                 Text("Connect StatsHunters")
             }
 
-            apply {
-                val dropdownOptions = TileDrawRangeEnum.entries.toList().map { unit -> DropdownOption("${unit.radius}", "${unit.radius}") }
-                val dropdownInitialSelection by remember(tileLoadRange) {
-                    mutableStateOf(dropdownOptions.find { option -> option.id == tileLoadRange } ?: dropdownOptions[0])
-                }
-                Dropdown(label = "Tile Draw Range", options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
-                    tileLoadRange = selectedOption.id
-                }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = !isDisabled, onCheckedChange = { isDisabled = !it})
+                Spacer(modifier = Modifier.width(10.dp))
+                Text("Enable tile drawing")
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = !hideGrid, onCheckedChange = { hideGrid = !it})
-                Spacer(modifier = Modifier.width(10.dp))
-                Text("Show grid")
+            if (!isDisabled){
+                apply {
+                    val dropdownOptions = TileDrawRangeEnum.entries.toList().map { unit -> DropdownOption("${unit.radius}", "${unit.radius}") }
+                    val dropdownInitialSelection by remember(tileLoadRange) {
+                        mutableStateOf(dropdownOptions.find { option -> option.id == tileLoadRange } ?: dropdownOptions[0])
+                    }
+                    Dropdown(label = "Tile Draw Range", options = dropdownOptions, selected = dropdownInitialSelection) { selectedOption ->
+                        tileLoadRange = selectedOption.id
+                    }
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(checked = !hideGrid, onCheckedChange = { hideGrid = !it})
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text("Show grid")
+                }
             }
 
             FilledTonalButton(modifier = Modifier
@@ -222,6 +232,7 @@ fun MainScreen() {
                         preferences.toBuilder()
                             .setTileDrawRange(tileLoadRange.toInt())
                             .setHideGridLines(hideGrid)
+                            .setIsDisabled(isDisabled)
                             .build()
                     }
                     savedDialogVisible = true
