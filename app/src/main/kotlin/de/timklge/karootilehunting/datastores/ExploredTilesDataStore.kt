@@ -1,4 +1,4 @@
-package de.timklge.karootilehunting
+package de.timklge.karootilehunting.datastores
 
 import android.content.Context
 import android.util.Log
@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.core.Serializer
 import androidx.datastore.dataStore
 import com.google.protobuf.InvalidProtocolBufferException
+import de.timklge.karootilehunting.KarooTilehuntingExtension
 import de.timklge.karootilehunting.data.ExploredTiles
 import java.io.InputStream
 import java.io.OutputStream
@@ -28,4 +29,5 @@ object ExploredTilesSerializer : Serializer<ExploredTiles> {
 }
 
 val Context.exploredTilesDataStore: DataStore<ExploredTiles> by dataStore(fileName = "explored_tiles.pb",
-    serializer = ExploredTilesSerializer)
+    serializer = ExploredTilesSerializer
+)

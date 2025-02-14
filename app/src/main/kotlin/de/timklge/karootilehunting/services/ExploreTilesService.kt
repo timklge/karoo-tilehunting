@@ -3,6 +3,7 @@ package de.timklge.karootilehunting.services
 import android.content.Context
 import android.media.MediaPlayer
 import android.util.Log
+import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfConversion
@@ -13,7 +14,7 @@ import de.timklge.karootilehunting.R
 import de.timklge.karootilehunting.Square
 import de.timklge.karootilehunting.Tile
 import de.timklge.karootilehunting.coordsToTile
-import de.timklge.karootilehunting.exploredTilesDataStore
+import de.timklge.karootilehunting.datastores.exploredTilesDataStore
 import io.hammerhead.karooext.models.InRideAlert
 import io.hammerhead.karooext.models.OnLocationChanged
 import io.hammerhead.karooext.models.PlayBeepPattern
@@ -99,9 +100,20 @@ class ExploreTilesService(private val karooSystem: KarooSystemServiceProvider) {
 
                     mediaPlayer?.start()
 
-                    context.exploredTilesDataStore.updateData {
-                        it.toBuilder().addRecentlyExploredTiles(de.timklge.karootilehunting.data.Tile.newBuilder().setX(
-                            coordsToTile(location.lat, location.lng).x).setY(coordsToTile(location.lat, location.lng).y).build()).build()
+                    context.exploredTilesDataStore.updateData { data ->
+                        val exploredTiles = data.exploredTilesList.map { Tile(it.x, it.y) }.toSet() + coordsToTile(location.lat, location.lng)
+                        val recentlyExploredTiles = data.recentlyExploredTilesList.map { Tile(it.x, it.y) }.toSet() + coordsToTile(location.lat, location.lng)
+                        val updatedSquare = Square.getBiggestSquare(exploredTiles)
+
+                        data.toBuilder()
+                            .clearRecentlyExploredTiles()
+                            .addAllRecentlyExploredTiles(recentlyExploredTiles.map { tile -> de.timklge.karootilehunting.data.Tile.newBuilder().setX(tile.x).setY(tile.y).build() })
+                            .clearExploredTiles()
+                            .addAllExploredTiles(exploredTiles.map { tile -> de.timklge.karootilehunting.data.Tile.newBuilder().setX(tile.x).setY(tile.y).build() })
+                            .setBiggestSquareX(updatedSquare?.x ?: 0)
+                            .setBiggestSquareY(updatedSquare?.y ?: 0)
+                            .setBiggestSquareSize(updatedSquare?.size ?: 0)
+                            .build()
                     }
                 }
         }

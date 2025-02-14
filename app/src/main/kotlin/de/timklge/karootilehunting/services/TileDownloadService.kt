@@ -2,11 +2,19 @@ package de.timklge.karootilehunting.services
 
 import android.content.Context
 import android.util.Log
+import com.mapbox.geojson.LineString
+import com.mapbox.turf.TurfConstants
+import com.mapbox.turf.TurfConversion
+import com.mapbox.turf.TurfMeasurement
+import com.mapbox.turf.TurfMisc
+import com.mapbox.turf.TurfTransformation
 import de.timklge.karootilehunting.KarooTilehuntingExtension.Companion.TAG
 import de.timklge.karootilehunting.Square
 import de.timklge.karootilehunting.Tile
-import de.timklge.karootilehunting.exploredTilesDataStore
-import de.timklge.karootilehunting.userPreferencesDataStore
+import de.timklge.karootilehunting.data.Activity
+import de.timklge.karootilehunting.datastores.activityLinesDataStore
+import de.timklge.karootilehunting.datastores.exploredTilesDataStore
+import de.timklge.karootilehunting.datastores.userPreferencesDataStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,11 +63,16 @@ class TileDownloadService(private val applicationContext: Context, val statshunt
                             .build()
                     }
 
+                    applicationContext.activityLinesDataStore.updateData {
+                        it.toBuilder().clearActivities().build()
+                    }
+
                     try {
                         var activityCount = 0
                         val sharecode = applicationContext.userPreferencesDataStore.data.first().statshuntersSharecode
-                        statshuntersTilesProvider.requestTiles(sharecode.trim()).collect { activities ->
-                            Log.d(TAG, "Received ${activities.size} activities")
+                        statshuntersTilesProvider.requestTiles(sharecode.trim()).collect { (activities, lines) ->
+                            Log.d(TAG, "Received ${activities.size} activities with ${lines?.size} lines")
+                            val hasLines = !lines.isNullOrEmpty() && lines.size == activities.size
 
                             applicationContext.exploredTilesDataStore.updateData { exploredTiles ->
                                 val alreadyExploredTiles =
@@ -84,6 +97,56 @@ class TileDownloadService(private val applicationContext: Context, val statshunt
                                     .setBiggestSquareY(updatedSquare?.y ?: 0)
                                     .setBiggestSquareSize(updatedSquare?.size ?: 0)
                                     .build()
+                            }
+
+                            if (hasLines) {
+                                print("Adding ${lines?.size} lines to datastore")
+
+                                val activityList = lines?.mapIndexed { index, line ->
+                                    val activity = activities[index]
+
+                                    Activity.newBuilder()
+                                        .addAllTiles(activity.tiles.map { tile -> de.timklge.karootilehunting.data.Tile.newBuilder().setX(tile.x).setY(tile.y).build() })
+                                        .setId(activity.id)
+                                        .setDate(activity.date)
+                                        .setName(activity.name)
+                                        .setAverageCadence(activity.averageCadence)
+                                        .setAverageHeartrate(activity.averageHeartrate)
+                                        .setAvg(activity.avg)
+                                        .setCommute(activity.commute)
+                                        .setDistance(activity.distance)
+                                        .setElapsedTime(activity.elapsedTime)
+                                        .setForeignId(activity.foreignId)
+                                        .setGearForeignId(activity.gearForeignId ?: "")
+                                        .setGearId(activity.gearId ?: 0)
+                                        .setKilojoules(activity.kilojoules)
+                                        .setLat(activity.lat)
+                                        .setLng(activity.lng)
+                                        .setMaxHeartrate(activity.maxHeartrate)
+                                        .setMaxSpeed(activity.maxSpeed)
+                                        .setMovingTime(activity.movingTime)
+                                        .setTotalElevationGain(activity.totalElevationGain)
+                                        .setTrainer(activity.trainer)
+                                        .setUserId(activity.userId)
+                                        .setWorkoutType(activity.workoutType)
+                                        .setEncodedPolyline(line.data)
+                                        .build()
+                                } ?: emptyList()
+
+                                val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+
+                                val sortedActivityList = activityList.sortedByDescending { activity ->
+                                    try {
+                                        java.time.LocalDateTime.parse(activity.date, formatter)
+                                    } catch (e: Throwable) {
+                                        Log.w(TAG, "Failed to parse date", e)
+                                        null
+                                    }
+                                }
+
+                                applicationContext.activityLinesDataStore.updateData { activityLines ->
+                                    activityLines.toBuilder().addAllActivities(sortedActivityList).build()
+                                }
                             }
                         }
 

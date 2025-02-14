@@ -16,8 +16,8 @@ android {
         applicationId = "de.timklge.karootilehunting"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.0-beta2"
+        versionCode = 3
+        versionName = "1.0-beta3"
     }
 
     signingConfigs {
@@ -70,6 +70,13 @@ dependencies {
     implementation(libs.androidx.glance.preview)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
+    implementation(libs.slf4j.android)
+    implementation(libs.slf4j.api)
+
+    implementation(libs.ktor.client.android)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+
     testImplementation(libs.testng)
     androidTestImplementation(libs.testng)
 }

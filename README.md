@@ -4,7 +4,7 @@
 [![GitHub Downloads (specific asset, all releases)](https://img.shields.io/github/downloads/timklge/karoo-tilehunting/app-release.apk)](https://github.com/timklge/karoo-tilehunting/releases)
 [![GitHub License](https://img.shields.io/github/license/timklge/karoo-tilehunting)](https://github.com/timklge/karoo-tilehunting/blob/master/LICENSE)
 
-This extension for Karoo devices adds a map overlay that shows explored tiles and shows an alert if you ride into an unexplored one. Tiles can be fetched from [statshunters.com](https://www.statshunters.com).
+This extension for Karoo devices adds a map overlay that shows explored tiles and shows an alert if you ride into an unexplored one. Optionally, past activities are also displayed on the map. Tiles and activities are fetched from [statshunters.com](https://www.statshunters.com).
 You can read more about tilehunting in the [StatsHunters FAQ](https://www.statshunters.com/faq-10-what-are-explorer-tiles) or watch the [nice introduction video](https://www.youtube.com/watch?v=e63UKfvPw9g) for an overview on StatsHunters' features.
 
 Compatible with Karoo 2 and Karoo 3 devices.
@@ -33,7 +33,7 @@ If you are using a Karoo 2, you can use manual sideloading:
 After installing this app on your Karoo, open the app from the extensions menu. Tap on the
 "Connnect StatsHunters" button to connect your account. You will need to open the
 [StatsHunters share page](https://www.statshunters.com/share) on your phone or computer, create
-a sharing link that includes your activities and type in the sharing code of your new link on the Karoo.
+a sharing link that includes your heatmap and type in the sharing code of your new link on the Karoo.
 
 After saving your code, the app will try to download the activities and your explored tiles.
 The app will then draw the outlines of your explored and unexplored tiles
@@ -53,8 +53,9 @@ The following colors are used:
 If you ride into a new tile, the app will show an alert and draw the tile in bright green.
 You can reset the bright green colored tiles by tapping the "Reset Tiles" button in the app's menu.
 
-You can temporarily hide the tile outlines on the map by tapping the stack icon in the same way you can hide the native heatmap.
+To view past rides, enable the respective setting in the app's main menu. The app will then show your past rides on the map as light gray lines.
 
+You can temporarily hide the tile outlines on the map by tapping the stack icon in the same way you can hide the native heatmap.
 You can add the count of explored tiles and count of recently explored tiles to your data pages as data fields.
 
 ## Credits

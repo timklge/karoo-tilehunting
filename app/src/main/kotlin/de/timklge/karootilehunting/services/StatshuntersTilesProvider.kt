@@ -1,12 +1,20 @@
 package de.timklge.karootilehunting.services
 
-import android.content.Context
 import android.util.Log
-import de.timklge.karootilehunting.Activity
-import de.timklge.karootilehunting.ActivityListResponse
 import de.timklge.karootilehunting.KarooTilehuntingExtension
 import io.hammerhead.karooext.models.HttpResponseState
 import io.hammerhead.karooext.models.OnHttpResponse
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.engine.android.Android
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.http.userAgent
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
@@ -23,17 +31,27 @@ val jsonWithUnknownKeys = Json(builderAction = {
     ignoreUnknownKeys = true
 })
 
+data class ActivitiesWithLines(val activities: List<Activity>, val lines: List<Line>?)
+
+@Suppress("BlockingMethodInNonBlockingContext")
 class StatshuntersTilesProvider(
     private val karooSystemServiceProvider: KarooSystemServiceProvider,
-    private val context: Context,
 ) {
-    suspend fun requestTiles(shareCode: String): Flow<List<Activity>> = flow {
+    suspend fun requestTiles(shareCode: String): Flow<ActivitiesWithLines> = flow {
         var page = 1
         do {
-            Log.d(KarooTilehuntingExtension.TAG, "Requesting page $page of activities...")
+            Log.d(KarooTilehuntingExtension.TAG, "Requesting page $page...")
 
             val newActivities = requestTilePage(shareCode, page)
-            emit(newActivities.activities)
+            val newLines = try {
+                requestLinePage(shareCode, page)
+            } catch(e: HttpDownloadError){
+                Log.e(KarooTilehuntingExtension.TAG, "Failed to download lines", e)
+
+                null
+            }
+
+            emit(ActivitiesWithLines(newActivities.activities, newLines?.activities))
             page += 1
         } while (newActivities.activities.size >= newActivities.meta.limit)
     }
@@ -41,57 +59,66 @@ class StatshuntersTilesProvider(
     class HttpDownloadError(val httpError: Int, message: String): Throwable(message)
 
     private suspend fun requestTilePage(shareCode: String, page: Int = 1): ActivityListResponse {
-        return callbackFlow {
-            val shareCodeUrlEncoded = withContext(Dispatchers.IO) { URLEncoder.encode(shareCode, "utf-8") }
+        val client = HttpClient(Android) {
+            install(ContentNegotiation) {
+                json(jsonWithUnknownKeys)
+            }
+            install(HttpTimeout) {
+                requestTimeoutMillis = 30000
+            }
+            defaultRequest {
+                userAgent(KarooTilehuntingExtension.TAG)
+            }
+        }
+
+        try {
+            val shareCodeUrlEncoded = URLEncoder.encode(shareCode, "utf-8")
             val url = "https://www.statshunters.com/share/${shareCodeUrlEncoded}/api/activities?page=${page}"
 
             Log.d(KarooTilehuntingExtension.TAG, "Http request to ${url}...")
 
-            val listenerId = karooSystemServiceProvider.karooSystemService.addConsumer(
-                OnHttpResponse.MakeHttpRequest(
-                    "GET",
-                    url,
-                    waitForConnection = false,
-                    headers = mapOf("User-Agent" to KarooTilehuntingExtension.TAG, "Accept-Encoding" to "gzip"),
-                ),
-            ) { event: OnHttpResponse ->
-                if (event.state is HttpResponseState.Complete){
-                    val completeEvent = (event.state as HttpResponseState.Complete)
-
-                    try {
-                        if (!completeEvent.error.isNullOrBlank() || completeEvent.statusCode !in 200..<300){
-                            close(HttpDownloadError(completeEvent.statusCode, completeEvent.error ?: "Unknown error"))
-                            return@addConsumer
-                        }
-
-                        val responseBody = completeEvent.body?.let { body ->
-                            GZIPInputStream(body.inputStream()).bufferedReader().use { it.readText() }
-                        } ?: error("Failed to read response")
-
-                        Log.d(KarooTilehuntingExtension.TAG, "Http response event; size ${completeEvent.body?.size}")
-
-                        val response = try {
-                            jsonWithUnknownKeys.decodeFromString(ActivityListResponse.serializer(), responseBody)
-                        } catch (e: Exception) {
-                            Log.e(KarooTilehuntingExtension.TAG, "Failed to parse response: ${completeEvent.body}", e)
-                            throw e
-                        }
-
-                        Log.d(KarooTilehuntingExtension.TAG, "Parsed activity response with ${response.activities.size} activities")
-
-                        trySendBlocking(response)
-
-                        close()
-                    } catch(e: Throwable){
-                        Log.e(KarooTilehuntingExtension.TAG, "Failed to process response", e)
-
-                        close(e)
-                    }
-                }
+            return client.get(url).body<ActivityListResponse>().also {
+                Log.d(KarooTilehuntingExtension.TAG, "Parsed activity response with ${it.activities.size} activities")
             }
-            awaitClose() {
-                karooSystemServiceProvider.karooSystemService.removeConsumer(listenerId)
+        } catch (e: ClientRequestException) {
+            throw HttpDownloadError(e.response.status.value, e.message)
+        } catch (e: Exception) {
+            Log.e(KarooTilehuntingExtension.TAG, "Failed to fetch tiles", e)
+            throw e
+        } finally {
+            client.close()
+        }
+    }
+
+    private suspend fun requestLinePage(shareCode: String, page: Int = 1): LinesListResponse {
+        val client = HttpClient(Android) {
+            install(ContentNegotiation) {
+                json(jsonWithUnknownKeys)
             }
-        }.single()
+            install(HttpTimeout) {
+                requestTimeoutMillis = 30000
+            }
+            defaultRequest {
+                userAgent(KarooTilehuntingExtension.TAG)
+            }
+        }
+
+        try {
+            val shareCodeUrlEncoded = URLEncoder.encode(shareCode, "utf-8")
+            val url = "https://www.statshunters.com/share/${shareCodeUrlEncoded}/api/activities/lines?page=${page}"
+
+            Log.d(KarooTilehuntingExtension.TAG, "Http lines request to ${url}...")
+
+            return client.get(url).body<LinesListResponse>().also {
+                Log.d(KarooTilehuntingExtension.TAG, "Parsed activity response with ${it.activities.size} activities")
+            }
+        } catch (e: ClientRequestException) {
+            throw HttpDownloadError(e.response.status.value, e.message)
+        } catch (e: Exception) {
+            Log.e(KarooTilehuntingExtension.TAG, "Failed to fetch lines", e)
+            throw e
+        } finally {
+            client.close()
+        }
     }
 }

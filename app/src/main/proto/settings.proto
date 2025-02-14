@@ -7,4 +7,5 @@ message UserPreferences {
   uint32 tileDrawRange = 3;
   bool hideGridLines = 4;
   bool isDisabled = 5;
+  bool showActivityLines = 6;
 }

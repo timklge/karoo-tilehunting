@@ -1,7 +1,7 @@
 package de.timklge.karootilehunting.datatypes
 
 import android.content.Context
-import de.timklge.karootilehunting.exploredTilesDataStore
+import de.timklge.karootilehunting.datastores.exploredTilesDataStore
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.internal.Emitter

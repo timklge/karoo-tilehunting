@@ -3,6 +3,8 @@ package de.timklge.karootilehunting.services
 import android.content.Context
 import android.util.Log
 import androidx.annotation.ColorRes
+import com.mapbox.geojson.LineString
+import com.mapbox.geojson.Point
 import de.timklge.karootilehunting.Cluster
 import de.timklge.karootilehunting.KarooTilehuntingExtension.Companion.TAG
 import de.timklge.karootilehunting.KarooTilehuntingExtension.ExploredTilesData
@@ -12,11 +14,13 @@ import de.timklge.karootilehunting.Tile
 import de.timklge.karootilehunting.clusterTiles
 import de.timklge.karootilehunting.coordsToTile
 import de.timklge.karootilehunting.data.GpsCoords
+import de.timklge.karootilehunting.data.PastActivities
 import de.timklge.karootilehunting.data.UserPreferences
-import de.timklge.karootilehunting.exploredTilesDataStore
+import de.timklge.karootilehunting.datastores.activityLinesDataStore
+import de.timklge.karootilehunting.datastores.exploredTilesDataStore
+import de.timklge.karootilehunting.datastores.userPreferencesDataStore
 import de.timklge.karootilehunting.lastKnownGpsCoordsDataStore
 import de.timklge.karootilehunting.throttle
-import de.timklge.karootilehunting.userPreferencesDataStore
 import io.hammerhead.karooext.internal.Emitter
 import io.hammerhead.karooext.models.HidePolyline
 import io.hammerhead.karooext.models.MapEffect
@@ -26,6 +30,8 @@ import io.hammerhead.karooext.models.ShowPolyline
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.firstOrNull
@@ -67,19 +73,68 @@ class ClusterDrawService(private val karooSystem: KarooSystemServiceProvider,
 
             val settingsFlow = applicationContext.userPreferencesDataStore.data
 
+            val linesFlow = channelFlow {
+                send(null)
+
+                settingsFlow.collectLatest { settings ->
+                    if (settings.showActivityLines){
+                        applicationContext.activityLinesDataStore.data.collect {
+                            send(it)
+                        }
+                    }
+                }
+            }
+
             data class StreamData(val exploredTiles: ExploredTilesData,
+                                  val lines: PastActivities? = null,
                                   val settings: UserPreferences,
                                   val centerTile: Tile,
                                   val mapZoom: Int)
 
-            combine(exploredTilesFlow, settingsFlow, gpsTileFlow, mapZoomFlow) { exploredTiles, settings, centerTile, mapZoom -> StreamData(exploredTiles, settings, centerTile, mapZoom) }
-                .distinctUntilChanged()
-                .collect { (exploredTilesData, settings, centerTile, mapZoom) ->
+            combine(exploredTilesFlow, linesFlow, settingsFlow, gpsTileFlow, mapZoomFlow) { exploredTiles, lines, settings, centerTile, mapZoom ->
+                StreamData(exploredTiles, lines, settings, centerTile, mapZoom)
+            }.distinctUntilChanged().collect { (exploredTilesData, pastActivities, settings, centerTile, mapZoom) ->
                     if (!settings.isDisabled){
                         val startTime = System.currentTimeMillis()
+
+                        Log.d(TAG, "Start updating tiles")
+
                         val tileLoadRadius = settings.tileDrawRange.let { if(it > 0) it else 3 }.coerceIn(2..5)
                         val showGridLines = !settings.hideGridLines
                         val viewSquare = Square(centerTile.x - tileLoadRadius, centerTile.y - tileLoadRadius, tileLoadRadius * 2)
+
+                        val linesInViewSquare = mutableMapOf<Int, LineString>()
+                        activityLoop@ for (activity in pastActivities?.activitiesList ?: emptyList()){
+                            val decoded = LineString.fromPolyline(activity.encodedPolyline, 5)
+
+                            val segments = mutableListOf<List<Point>>()
+                            var currentSegment: MutableList<Point> = mutableListOf()
+
+                            for(coords in decoded.coordinates()){
+                                val isInside = viewSquare.isInside(coords.latitude(), coords.longitude())
+                                if (isInside){
+                                    currentSegment.add(coords)
+                                } else {
+                                    if (currentSegment.isNotEmpty()){
+                                        segments.add(currentSegment)
+                                        currentSegment = mutableListOf()
+                                    }
+                                }
+                            }
+
+                            if (currentSegment.isNotEmpty()){
+                                segments.add(currentSegment.toList())
+                                currentSegment.clear()
+                            }
+
+                            segments.forEach { linesInViewSquare[activity.id] = (LineString.fromLngLats(it)) }
+
+                            if (linesInViewSquare.size > 100){ // Render at most 100 activities
+                                break@activityLoop
+                            }
+                        }
+
+                        Log.d(TAG, "Lines in view square: ${linesInViewSquare.size}")
 
                         val tileLoadRangeX = centerTile.x - tileLoadRadius..centerTile.x + tileLoadRadius
                         val tileLoadRangeY = centerTile.y - tileLoadRadius..centerTile.y + tileLoadRadius
@@ -95,18 +150,19 @@ class ClusterDrawService(private val karooSystem: KarooSystemServiceProvider,
                             else -> 5.0
                         }
 
-                        val exploredTilesInRange = exploredTilesData.exploredTiles
+                        val recentlyExploredTiles = exploredTilesData.recentlyExploredTiles
                             .filter { it.x in tileLoadRangeX && it.y in tileLoadRangeY }
                             .map { Tile(it.x, it.y) }.toSet()
+
+                        val allExploredTilesInRange = exploredTilesData.exploredTiles
+                            .filter { it.x in tileLoadRangeX && it.y in tileLoadRangeY }
+                            .map { Tile(it.x, it.y) }.toSet()
+                        val exploredTilesInRange = allExploredTilesInRange - recentlyExploredTiles
 
                         Log.i(TAG, "Explored tiles: ${exploredTilesInRange.size} - Center Tile: $centerTile - Map Zoom: $mapZoom")
 
                         val square = exploredTilesData.square
                         Log.i(TAG, "Largest square: $square")
-
-                        val recentlyExploredTiles = exploredTilesData.recentlyExploredTiles
-                            .filter { it.x in tileLoadRangeX && it.y in tileLoadRangeY }
-                            .map { Tile(it.x, it.y) }.toSet()
 
                         val squareTiles = exploredTilesInRange.intersect((square?.getAllTiles() ?: emptySet()).toSet())
                         val exploredTilesWithNeighbours = (exploredTilesInRange - squareTiles).filter { it.isSurrounded(exploredTilesData.exploredTiles) }.toSet()
@@ -126,14 +182,14 @@ class ClusterDrawService(private val karooSystem: KarooSystemServiceProvider,
                         val clusteredRecentlyExploredGridLines = clusteredRecentlyExploredTiles.flatMap { it.getGridPolylines() }
                         val clusteredExploredTilesWithNeighboursGridLines = clusteredExploredTilesWithNeighbours.flatMap { it.getGridPolylines() }
 
-                        fun getPolylineCommands(cluster: Cluster?, identifier: String, @ColorRes color: Int): List<ShowPolyline> {
+                        fun getPolylineCommands(cluster: Cluster?, identifier: String, @ColorRes color: Int, width: Int = 10): List<ShowPolyline> {
                             return cluster?.getPolyline(insetOffset)?.map { polyline ->
                                 val str = polyline.toPolyline(5)
                                 ShowPolyline(
                                     id = "${identifier}-${str.hashCode()}",
                                     encodedPolyline = str,
                                     color = applicationContext.getColor(color),
-                                    width = 10
+                                    width = width
                                 )
                             } ?: emptyList()
                         }
@@ -141,6 +197,16 @@ class ClusterDrawService(private val karooSystem: KarooSystemServiceProvider,
                         val squareClusterPolyline = getPolylineCommands(squareCluster, "square-cluster",
                             R.color.blue
                         ).toSet()
+
+                        val activityPolylines = linesInViewSquare.map { (id, line) ->
+                            val str = line.toPolyline(5)
+                            ShowPolyline(
+                                id = "activity-${id}",
+                                encodedPolyline = str,
+                                color = applicationContext.getColor(R.color.fadedGray),
+                                width = 4
+                            )
+                        }
 
                         val clusteredExploredPolylines = clusteredExploredTiles.map {
                             getPolylineCommands(it, "clustered-explored", R.color.red)
@@ -199,7 +265,8 @@ class ClusterDrawService(private val karooSystem: KarooSystemServiceProvider,
                         }
 
                         val polylines = gridLines + clusteredExploredPolylines + squareClusterPolyline +
-                                clusteredUnexploredPolylines + clusteredRecentlyExploredPolylines + clusteredExploredTilesWithNeighboursPolylines
+                                clusteredUnexploredPolylines + clusteredRecentlyExploredPolylines + clusteredExploredTilesWithNeighboursPolylines +
+                                activityPolylines
 
                         val newPolylines = polylines - lastDrawnPolylines
                         val droppedPolylines = lastDrawnPolylines - polylines
