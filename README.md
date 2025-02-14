@@ -4,7 +4,7 @@
 [![GitHub Downloads (specific asset, all releases)](https://img.shields.io/github/downloads/timklge/karoo-tilehunting/app-release.apk)](https://github.com/timklge/karoo-tilehunting/releases)
 [![GitHub License](https://img.shields.io/github/license/timklge/karoo-tilehunting)](https://github.com/timklge/karoo-tilehunting/blob/master/LICENSE)
 
-This extension for Karoo devices adds a map overlay that shows explored tiles. Tiles can be fetched from [statshunters.com](https://www.statshunters.com).
+This extension for Karoo devices adds a map overlay that shows explored tiles and shows an alert if you ride into an unexplored one. Tiles can be fetched from [statshunters.com](https://www.statshunters.com).
 You can read more about tilehunting in the [StatsHunters FAQ](https://www.statshunters.com/faq-10-what-are-explorer-tiles) or watch the [nice introduction video](https://www.youtube.com/watch?v=e63UKfvPw9g) for an overview on StatsHunters' features.
 
 Compatible with Karoo 2 and Karoo 3 devices.
@@ -48,6 +48,7 @@ The following colors are used:
 - Green: A tile whose neighbors are all explored
 - Red: A tile that is explored, but has unexplored neighbors
 - Gray: An unexplored tile
+- Bright Green / Lime: A tile you have just explored
 
 If you ride into a new tile, the app will show an alert and draw the tile in bright green.
 You can reset the bright green colored tiles by tapping the "Reset Tiles" button in the app's menu.
