@@ -1,0 +1,54 @@
+syntax = "proto3";
+option java_package = "de.timklge.karootilehunting.data";
+option java_multiple_files = true;
+
+import "tile.proto";
+
+message Activity {
+  int32 id = 1;
+  string foreign_id = 2;
+  int32 user_id = 3;
+  string name = 4;
+  int32 gear_id = 5;
+  string gear_foreign_id = 6;
+  double lat = 7;
+  double lng = 8;
+  double distance = 9;
+  double avg = 10;
+  double total_elevation_gain = 11;
+  int32 moving_time = 12;
+  int32 elapsed_time = 13;
+  double max_speed = 14;
+  double average_cadence = 15;
+  double average_heartrate = 16;
+  double max_heartrate = 17;
+  double kilojoules = 18;
+  int32 commute = 19;
+  int32 trainer = 20;
+  int32 workout_type = 21;
+  string date = 22;
+  string timezone = 23;
+  string type = 24;
+  string created_at = 25;
+  string updated_at = 26;
+  string status = 27;
+  string utc_date = 28;
+  repeated Country countries = 29;
+  repeated Region regions = 30;
+  repeated Tile tiles = 31;
+  string encoded_polyline = 35;
+}
+
+message Country {
+  int32 id = 1;
+  int32 foreign_id = 2;
+  string name = 3;
+}
+
+message Region {
+  // Add region fields as needed
+}
+
+message PastActivities {
+  repeated Activity activities = 1;
+}

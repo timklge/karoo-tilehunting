@@ -8,11 +8,15 @@ data class Square(val x: Int, val y: Int, val size: Int){
     }
 
     fun getAllTiles(): Set<Tile> = buildSet {
-        for (i in 0..this@Square.size){
-            for (j in 0..this@Square.size){
+        for (i in 0..<this@Square.size){
+            for (j in 0..<          this@Square.size){
                 add(Tile(x + i, y + j))
             }
         }
+    }
+
+    fun isInside(lat: Double, lon: Double): Boolean {
+        return isInside(coordsToTile(lat, lon))
     }
 
     companion object {

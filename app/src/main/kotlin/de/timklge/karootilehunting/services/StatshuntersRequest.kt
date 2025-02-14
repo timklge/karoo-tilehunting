@@ -1,7 +1,20 @@
-package de.timklge.karootilehunting
+package de.timklge.karootilehunting.services
 
+import de.timklge.karootilehunting.Tile
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+
+@Serializable
+data class Line(
+    val id: Long,
+    val data: String
+)
+
+@Serializable
+data class LinesListResponse(
+    val activities: List<Line>,
+    val meta: Meta
+)
 
 @Serializable
 data class ActivityListResponse(

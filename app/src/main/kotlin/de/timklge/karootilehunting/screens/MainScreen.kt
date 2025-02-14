@@ -49,10 +49,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import de.timklge.karootilehunting.Square
 import de.timklge.karootilehunting.Tile
-import de.timklge.karootilehunting.exploredTilesDataStore
-import de.timklge.karootilehunting.userPreferencesDataStore
+import de.timklge.karootilehunting.datastores.exploredTilesDataStore
+import de.timklge.karootilehunting.datastores.userPreferencesDataStore
 import io.hammerhead.karooext.KarooSystemService
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -89,6 +88,7 @@ fun MainScreen() {
     var tileLoadRange by remember { mutableStateOf("3") }
     var hideGrid by remember { mutableStateOf(false) }
     var isDisabled by remember { mutableStateOf(false) }
+    var showActivityLines by remember { mutableStateOf(false) }
 
     LaunchedEffect(exploredTilesStore) {
         coroutineScope.launch {
@@ -99,6 +99,7 @@ fun MainScreen() {
             squareSize = exploredTilesStore?.biggestSquareSize ?: 0
             hideGrid = settingsStore?.hideGridLines ?: false
             isDisabled = settingsStore?.isDisabled ?: false
+            showActivityLines = settingsStore?.showActivityLines ?: false
         }
     }
 
@@ -221,6 +222,12 @@ fun MainScreen() {
                     Spacer(modifier = Modifier.width(10.dp))
                     Text("Show grid")
                 }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(checked = showActivityLines, onCheckedChange = { showActivityLines = it})
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text("Show activity lines")
+                }
             }
 
             FilledTonalButton(modifier = Modifier
@@ -233,6 +240,7 @@ fun MainScreen() {
                             .setTileDrawRange(tileLoadRange.toInt())
                             .setHideGridLines(hideGrid)
                             .setIsDisabled(isDisabled)
+                            .setShowActivityLines(showActivityLines)
                             .build()
                     }
                     savedDialogVisible = true
