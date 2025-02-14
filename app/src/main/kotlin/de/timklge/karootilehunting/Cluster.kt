@@ -6,13 +6,11 @@ import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfConversion
 import kotlinx.serialization.Serializable
 import kotlin.math.abs
-import kotlin.math.acos
 import kotlin.math.atan
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
-import kotlin.math.sin
 import kotlin.math.sinh
 
 @Serializable
@@ -36,7 +34,7 @@ data class Tile(val x: Int, val y: Int) {
 
     fun getLat(zoom: Int = 14): Double {
         val n = 2.0.pow(zoom)
-        val latRad = atan(sinh( Math.PI * (1 - 2 * y / n)))
+        val latRad = atan(sinh(Math.PI * (1 - 2 * y / n)))
         return Math.toDegrees(latRad)
     }
 }
@@ -44,7 +42,7 @@ data class Tile(val x: Int, val y: Int) {
 enum class CurrentCorner {
     TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT;
 
-    // Returns an inset coordinate for the given tile corner.
+    // Returns the actual (unmodified) coordinates for the given tile corner.
     fun getCoords(tile: Tile): Point {
         return when (this) {
             TOP_LEFT -> Point.fromLngLat(tile.getLon(), tile.getLat())
@@ -55,183 +53,140 @@ enum class CurrentCorner {
     }
 }
 
-// The Cluster class represents a collection of contiguous tiles.
+/**
+ * The Cluster class represents a collection of contiguous tiles.
+ * The outlines are computed by collecting the boundary edges that do not have neighbouring tiles.
+ * Then each boundary segment is inset toward the tile interior by a given offset.
+ * Finally, the inset segments are chained into closed polylines.
+ */
 open class Cluster {
     val tiles = mutableSetOf<Tile>()
 
-
+    /**
+     * Computes the cluster outlines. Each outline is a closed polyline represented as a LineString.
+     *
+     * The insetOffset is provided in meters and will be converted to degrees.
+     */
     fun getPolyline(insetOffset: Double = 50.0): List<LineString> {
         if (tiles.isEmpty()) return emptyList()
 
-        // Step 1: Compute all boundary segments
-        val segments = mutableListOf<Pair<Point, Point>>()
-        for (tile in tiles) {
-            if (!hasNorthNeighbor(tile)) segments.add(northEdge(tile))
-            if (!hasEastNeighbor(tile)) segments.add(eastEdge(tile))
-            if (!hasSouthNeighbor(tile)) segments.add(southEdge(tile))
-            if (!hasWestNeighbor(tile)) segments.add(westEdge(tile))
-        }
-
-        // Step 2: Group segments into closed polylines
-        val polylineGroups = mutableListOf<MutableList<Point>>()
-        val remainingSegments = segments.toMutableList()
-
-        while (remainingSegments.isNotEmpty()) {
-            val currentPolyline = mutableListOf<Point>()
-            var currentSegment = remainingSegments.removeAt(0)
-            currentPolyline.addAll(listOf(currentSegment.first, currentSegment.second))
-
-            var extended: Boolean
-            do {
-                extended = false
-                val lastPoint = currentPolyline.last()
-                val nextSegment = findConnectedSegment(remainingSegments, lastPoint)
-                nextSegment?.let {
-                    remainingSegments.remove(it)
-                    currentPolyline.add(if (arePointsEqual(it.first, lastPoint)) it.second else it.first)
-                    extended = true
-                }
-
-                if (!extended) {
-                    val firstPoint = currentPolyline.first()
-                    val reverseSegment = findConnectedSegment(remainingSegments, firstPoint)
-                    reverseSegment?.let {
-                        remainingSegments.remove(it)
-                        currentPolyline.add(0, if (arePointsEqual(it.second, firstPoint)) it.first else it.second)
-                        extended = true
-                    }
-                }
-            } while (extended)
-
-            if (!arePointsEqual(currentPolyline.first(), currentPolyline.last())) {
-                currentPolyline.add(currentPolyline.first())
-            }
-            polylineGroups.add(currentPolyline)
-        }
-
         val insetDegrees = TurfConversion.lengthToDegrees(insetOffset, TurfConstants.UNIT_METERS)
-        // This is the offset distance (in degrees) we’ll use when offsetting the cluster outline.
-        val offsetDistance = insetDegrees / 2.0
+        val segments = mutableListOf<Pair<Point, Point>>()
 
-        // Step 3: Process polylines with offset
-        return polylineGroups.mapNotNull { polyline ->
-            if (polyline.size < 3) return@mapNotNull null
-            val isHole = isPolylineHole(polyline)
-            val effectiveOffset = if (isHole) -offsetDistance else offsetDistance
-            val offset = offsetPolygon(polyline, effectiveOffset, isHole)
-            LineString.fromLngLats(offset)
-        }
-    }
+        for (tile in tiles) {
+            val topLeft = CurrentCorner.TOP_LEFT.getCoords(tile)
+            val topRight = CurrentCorner.TOP_RIGHT.getCoords(tile)
+            val bottomLeft = CurrentCorner.BOTTOM_LEFT.getCoords(tile)
+            val bottomRight = CurrentCorner.BOTTOM_RIGHT.getCoords(tile)
 
-    private fun offsetPolygon(polygon: List<Point>, offset: Double, isHole: Boolean): List<Point> {
-        val pts = if (arePointsEqual(polygon.first(), polygon.last())) polygon.dropLast(1) else polygon
-        if (pts.size < 3) return polygon
+            // Calculate corner points with appropriate insets
+            val noNorth = !hasNorthNeighbor(tile)
+            val noEast = !hasEastNeighbor(tile)
+            val noSouth = !hasSouthNeighbor(tile)
+            val noWest = !hasWestNeighbor(tile)
 
-        val miterLimit = 2.0
-        val offsetVertices = mutableListOf<Point>()
+            // Calculate inset points considering both dimensions
+            val inTopLeft = Point.fromLngLat(
+                topLeft.longitude() + (if (noWest) insetDegrees else 0.0),
+                topLeft.latitude() - (if (noNorth) insetDegrees else 0.0)
+            )
+            val inTopRight = Point.fromLngLat(
+                topRight.longitude() - (if (noEast) insetDegrees else 0.0),
+                topRight.latitude() - (if (noNorth) insetDegrees else 0.0)
+            )
+            val inBottomLeft = Point.fromLngLat(
+                bottomLeft.longitude() + (if (noWest) insetDegrees else 0.0),
+                bottomLeft.latitude() + (if (noSouth) insetDegrees else 0.0)
+            )
+            val inBottomRight = Point.fromLngLat(
+                bottomRight.longitude() - (if (noEast) insetDegrees else 0.0),
+                bottomRight.latitude() + (if (noSouth) insetDegrees else 0.0)
+            )
 
-        for (i in pts.indices) {
-            val prev = pts[(i + pts.size - 1) % pts.size]
-            val curr = pts[i]
-            val next = pts[(i + 1) % pts.size]
-
-            val v1 = normalizeVector(curr.longitude() - prev.longitude(), curr.latitude() - prev.latitude())
-            val v2 = normalizeVector(next.longitude() - curr.longitude(), next.latitude() - curr.latitude())
-
-            val n1 = inwardNormal(v1, isHole)
-            val n2 = inwardNormal(v2, isHole)
-
-            val bisector = Pair(n1.first + n2.first, n1.second + n2.second)
-            val bisectorLength = hypot(bisector.first, bisector.second)
-            if (bisectorLength == 0.0) {
-                offsetVertices.add(offsetPoint(curr, n1, offset))
-                continue
-            }
-
-            val nb = Pair(bisector.first / bisectorLength, bisector.second / bisectorLength)
-            val angle = acos(min(1.0, max(-1.0, n1.first * nb.first + n1.second * nb.second)))
-
-            val scale = if (sin(angle) != 0.0) {
-                val raw = offset / sin(angle)
-                val maxScale = miterLimit * abs(offset)
-                raw.coerceIn(-maxScale, maxScale)
-            } else {
-                offset
-            }
-
-            offsetVertices.add(Point.fromLngLat(
-                curr.longitude() + nb.first * scale,
-                curr.latitude() + nb.second * scale
-            ))
+            // Add segments for exposed edges
+            if (noNorth) segments.add(inTopLeft to inTopRight)
+            if (noEast) segments.add(inTopRight to inBottomRight)
+            if (noSouth) segments.add(inBottomLeft to inBottomRight)
+            if (noWest) segments.add(inTopLeft to inBottomLeft)
         }
 
-        offsetVertices.add(offsetVertices.first())
-        return offsetVertices
+        val polylines = chainSegments(segments)
+        return polylines.map { pts -> LineString.fromLngLats(pts) }
     }
 
-    private fun inwardNormal(v: Pair<Double, Double>, isHole: Boolean): Pair<Double, Double> {
-        return if (!isHole) {
-            Pair(v.second, -v.first)
-        } else {
-            Pair(-v.second, v.first)
-        }.let { (x, y) ->
-            val length = hypot(x, y)
-            if (length == 0.0) Pair(0.0, 0.0) else Pair(x / length, y / length)
-        }
-    }
-
-    private fun normalizeVector(dx: Double, dy: Double): Pair<Double, Double> {
-        val length = hypot(dx, dy)
-        return if (length == 0.0) Pair(0.0, 0.0) else Pair(dx / length, dy / length)
-    }
-
-    private fun offsetPoint(p: Point, normal: Pair<Double, Double>, offset: Double): Point {
-        return Point.fromLngLat(
-            p.longitude() + normal.first * offset,
-            p.latitude() + normal.second * offset
-        )
-    }
-
-    // Helper functions for boundary detection
+    // Check for neighbouring tiles in each direction using the tile grid.
     private fun hasNorthNeighbor(tile: Tile) = tiles.any { it.x == tile.x && it.y == tile.y - 1 }
     private fun hasEastNeighbor(tile: Tile) = tiles.any { it.x == tile.x + 1 && it.y == tile.y }
     private fun hasSouthNeighbor(tile: Tile) = tiles.any { it.x == tile.x && it.y == tile.y + 1 }
     private fun hasWestNeighbor(tile: Tile) = tiles.any { it.x == tile.x - 1 && it.y == tile.y }
 
-    private fun northEdge(tile: Tile) =
-        CurrentCorner.TOP_LEFT.getCoords(tile) to CurrentCorner.TOP_RIGHT.getCoords(tile)
+    private fun chainSegments(segments: List<Pair<Point, Point>>): List<List<Point>> {
+        if (segments.isEmpty()) return emptyList()
 
-    private fun eastEdge(tile: Tile) =
-        CurrentCorner.TOP_RIGHT.getCoords(tile) to CurrentCorner.BOTTOM_RIGHT.getCoords(tile)
+        val remaining = segments.toMutableList()
+        val polylines = mutableListOf<MutableList<Point>>()
 
-    private fun southEdge(tile: Tile) =
-        CurrentCorner.BOTTOM_RIGHT.getCoords(tile) to CurrentCorner.BOTTOM_LEFT.getCoords(tile)
+        while (remaining.isNotEmpty()) {
+            val currentPolyline = mutableListOf<Point>()
+            val firstSeg = remaining.removeAt(0)
+            currentPolyline.add(firstSeg.first)
+            currentPolyline.add(firstSeg.second)
 
-    private fun westEdge(tile: Tile) =
-        CurrentCorner.BOTTOM_LEFT.getCoords(tile) to CurrentCorner.TOP_LEFT.getCoords(tile)
+            var isClosed = false
+            var changed = true
+            while (changed && !isClosed) {
+                changed = false
+                for (i in remaining.indices.reversed()) {
+                    val seg = remaining[i]
+                    val start = currentPolyline.first()
+                    val end = currentPolyline.last()
 
-    private fun findConnectedSegment(segments: List<Pair<Point, Point>>, point: Point) =
-        segments.firstOrNull { arePointsEqual(it.first, point) || arePointsEqual(it.second, point) }
-
-    private fun isPolylineHole(polyline: List<Point>): Boolean {
-        var area = 0.0
-        for (i in 0 until polyline.size - 1) {
-            val p1 = polyline[i]
-            val p2 = polyline[i + 1]
-            area += (p2.longitude() - p1.longitude()) * (p2.latitude() + p1.latitude())
+                    when {
+                        pointsEqual(seg.first, end) -> {
+                            currentPolyline.add(seg.second)
+                            remaining.removeAt(i)
+                            changed = true
+                        }
+                        pointsEqual(seg.second, end) -> {
+                            currentPolyline.add(seg.first)
+                            remaining.removeAt(i)
+                            changed = true
+                        }
+                        pointsEqual(seg.first, start) -> {
+                            currentPolyline.add(0, seg.second)
+                            remaining.removeAt(i)
+                            changed = true
+                        }
+                        pointsEqual(seg.second, start) -> {
+                            currentPolyline.add(0, seg.first)
+                            remaining.removeAt(i)
+                            changed = true
+                        }
+                    }
+                    if (pointsEqual(currentPolyline.first(), currentPolyline.last())) {
+                        isClosed = true
+                        break
+                    }
+                }
+            }
+            //if (!pointsEqual(currentPolyline.first(), currentPolyline.last())) {
+            //    currentPolyline.add(currentPolyline.first())
+            //}
+            polylines.add(currentPolyline)
         }
-        return area < 0
+        return polylines
     }
 
-    // Checks if two points are equal, within a tolerance.
-    private fun arePointsEqual(p1: Point, p2: Point, epsilon: Double = 1e-6): Boolean {
+    // Checks if two points are effectively equal using a small epsilon.
+    private fun pointsEqual(p1: Point, p2: Point, epsilon: Double = 1e-6): Boolean {
         return abs(p1.longitude() - p2.longitude()) < epsilon &&
                 abs(p1.latitude() - p2.latitude()) < epsilon
     }
 
-    // Returns a list of LineString objects representing the grid lines between adjacent tiles in the cluster.
-    // This method creates one line per shared edge and merges collinear adjacent segments.
-    // All grid line endpoints are no longer inset.
+    /**
+     * Returns a list of LineString objects representing the grid lines between adjacent tiles in the cluster.
+     * This method creates one line per shared edge and merges collinear adjacent segments.
+     */
     fun getGridPolylines(): List<LineString> {
         // Temporary data class to hold segment info for merging.
         data class Segment(val fixed: Double, var start: Double, var end: Double)
@@ -346,3 +301,6 @@ fun clusterTiles(tiles: Set<Tile>): List<Cluster> {
     }
     return clusters
 }
+
+// Helper function for power of 2 (since Kotlin does not have an operator for Double.pow with Int).
+private fun Double.pow(n: Int): Double = this.pow(n.toDouble())
