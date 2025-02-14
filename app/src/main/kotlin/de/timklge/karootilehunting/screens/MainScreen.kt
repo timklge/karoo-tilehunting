@@ -244,7 +244,7 @@ fun MainScreen() {
             if (clearedRecentExploredTilesDialogVisible){
                 AlertDialog(onDismissRequest = { savedDialogVisible = false },
                     confirmButton = { Button(onClick = {
-                        savedDialogVisible = false
+                        clearedRecentExploredTilesDialogVisible = false
                     }) { Text("OK") } },
                     text = { Text("Recent tiles cleared.") }
                 )
