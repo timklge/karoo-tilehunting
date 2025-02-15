@@ -4,7 +4,7 @@
 [![GitHub Downloads (specific asset, all releases)](https://img.shields.io/github/downloads/timklge/karoo-tilehunting/app-release.apk)](https://github.com/timklge/karoo-tilehunting/releases)
 [![GitHub License](https://img.shields.io/github/license/timklge/karoo-tilehunting)](https://github.com/timklge/karoo-tilehunting/blob/master/LICENSE)
 
-This extension for Karoo devices adds a map overlay that shows explored tiles and shows an alert if you ride into an unexplored one. Optionally, past activities are also displayed on the map. Tiles and activities are fetched from [statshunters.com](https://www.statshunters.com).
+This extension for Karoo devices adds a map overlay that shows explored tiles and an alert if you ride into an unexplored one. Optionally, past activities are also displayed on the map. Tiles and activities are fetched from [statshunters.com](https://www.statshunters.com).
 You can read more about tilehunting in the [StatsHunters FAQ](https://www.statshunters.com/faq-10-what-are-explorer-tiles) or watch the [nice introduction video](https://www.youtube.com/watch?v=e63UKfvPw9g) for an overview on StatsHunters' features.
 
 Compatible with Karoo 2 and Karoo 3 devices.
