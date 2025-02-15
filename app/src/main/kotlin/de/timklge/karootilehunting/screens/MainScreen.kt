@@ -1,5 +1,7 @@
 package de.timklge.karootilehunting.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
@@ -283,29 +286,7 @@ fun MainScreen() {
                                 .verticalScroll(rememberScrollState())
                                 .fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            var dialogEnteredSharecode by remember { mutableStateOf("") }
-                            LaunchedEffect(Unit) {
-                                coroutineScope.launch {
-                                    dialogEnteredSharecode = ctx.userPreferencesDataStore.data.first().statshuntersSharecode
-                                }
-                            }
-
-                            Text("Go to statshunters.com/share and create a link that shares your heatmap. Enter its sharing code below.")
-
-                            Text(buildAnnotatedString {
-                                append("Example: statshunters.com/share/")
-                                withStyle(style = SpanStyle(color = Color.Red, fontWeight = FontWeight.Bold)) {
-                                    append("010433475e27")
-                                }
-                            })
-
-                            OutlinedTextField(
-                                value = dialogEnteredSharecode,
-                                onValueChange = { dialogEnteredSharecode = it },
-                                label = { Text("Code") },
-                                modifier = Modifier.fillMaxWidth(),
-                                singleLine = true
-                            )
+                            Text("Click the button below to open the StatsHunters website. Login, then open the share page from the menu and create a link that includes your heatmap. Afterwards, click on it and you will be redirected here.")
 
                             FilledTonalButton(modifier = Modifier
                                 .fillMaxWidth()
@@ -313,20 +294,12 @@ fun MainScreen() {
                                     statshuntersDialogVisible = false
 
                                     coroutineScope.launch {
-                                        var changedCode = false
-                                        ctx.userPreferencesDataStore.updateData { preferences ->
-                                            changedCode = preferences.statshuntersSharecode != dialogEnteredSharecode
-                                            preferences.toBuilder().setStatshuntersSharecode(dialogEnteredSharecode).build()
-                                        }
-                                        if (changedCode) {
-                                            ctx.exploredTilesDataStore.updateData { exploredTiles ->
-                                                exploredTiles.toBuilder().setLastDownloadedAt(0).build()
-                                            }
-                                        }
+                                        val uri = Uri.parse("https://www.statshunters.com/login")
+                                        ctx.startActivity(Intent(Intent.ACTION_VIEW, uri))
                                     }
                             }) {
-                                Icon(Icons.Default.Done, contentDescription = "OK")
-                                Text("OK")
+                                Icon(Icons.Default.Person, contentDescription = "Login at StatsHunters")
+                                Text("Login at StatsHunters")
                             }
                         }
                     }

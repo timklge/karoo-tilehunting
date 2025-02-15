@@ -36,5 +36,21 @@
         <meta-data
             android:name="io.hammerhead.karooext.MANIFEST_URL"
             android:value="https://github.com/timklge/karoo-tilehunting/releases/latest/download/manifest.json" />
+
+        <activity
+            android:name=".ShareCodeRedirectActivity"
+            android:theme="@style/SplashTheme"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="www.statshunters.com"
+                    android:pathPattern="/share/.+"/>
+            </intent-filter>
+        </activity>
     </application>
 </manifest>
