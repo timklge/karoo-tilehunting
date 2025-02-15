@@ -129,7 +129,7 @@ class ClusterDrawService(private val karooSystem: KarooSystemServiceProvider,
 
                             segments.forEach { linesInViewSquare[activity.id] = (LineString.fromLngLats(it)) }
 
-                            if (linesInViewSquare.size > 100){ // Render at most 100 activities
+                            if (linesInViewSquare.size > 50){ // Render at most 50 activities
                                 break@activityLoop
                             }
                         }
