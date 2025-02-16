@@ -16,8 +16,8 @@ android {
         applicationId = "de.timklge.karootilehunting"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.0-beta4"
+        versionCode = 5
+        versionName = "1.0-beta5"
     }
 
     signingConfigs {
