@@ -1,7 +1,5 @@
 package de.timklge.karootilehunting
 
-import kotlinx.serialization.Serializable
-
 data class Square(val x: Int, val y: Int, val size: Int){
     fun isInside(tile: Tile): Boolean {
         return tile.x >= x && tile.x < x + size && tile.y >= y && tile.y < y + size
