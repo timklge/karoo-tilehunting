@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Person
@@ -67,7 +68,7 @@ enum class TileDrawRangeEnum(val radius: Int){
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(onFinish: () -> Unit) {
     var karooConnected by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -84,6 +85,7 @@ fun MainScreen() {
     var recentTilesCount by remember { mutableIntStateOf(0) }
 
     var savedDialogVisible by remember { mutableStateOf(false) }
+    var exitDialogVisible by remember { mutableStateOf(false) }
     var clearedRecentExploredTilesDialogVisible by remember { mutableStateOf(false) }
     var tileLoadRange by remember { mutableStateOf("3") }
     var hideGrid by remember { mutableStateOf(false) }
@@ -249,6 +251,28 @@ fun MainScreen() {
                 Icon(Icons.Default.Done, contentDescription = "Save")
                 Spacer(modifier = Modifier.width(5.dp))
                 Text("Save")
+            }
+
+            FilledTonalButton(modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp), onClick = {
+                exitDialogVisible = true
+            }) {
+                Icon(Icons.AutoMirrored.Default.ExitToApp, contentDescription = "Exit")
+                Spacer(modifier = Modifier.width(5.dp))
+                Text("Exit")
+            }
+
+            if (exitDialogVisible) {
+                AlertDialog(onDismissRequest = { exitDialogVisible = false },
+                    confirmButton = { Button(onClick = {
+                        onFinish()
+                    }) { Text("Yes") } },
+                    dismissButton = { Button(onClick = {
+                        exitDialogVisible = false
+                    }) { Text("No") } },
+                    text = { Text("Do you really want to exit?") }
+                )
             }
 
             if (savedDialogVisible){

@@ -12,7 +12,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AppTheme {
-                MainScreen()
+                MainScreen() {
+                    finish()
+                }
             }
         }
     }
