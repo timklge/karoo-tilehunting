@@ -104,7 +104,7 @@ class ClusterDrawService(private val karooSystem: KarooSystemServiceProvider,
 
                         val tileLoadRadius = settings.tileDrawRange.let { if(it > 0) it else 3 }.coerceIn(2..5)
                         val showGridLines = !settings.hideGridLines
-                        val viewSquare = Square(centerTile.x - tileLoadRadius, centerTile.y - tileLoadRadius, tileLoadRadius * 2)
+                        val viewSquare = Square(centerTile.x - tileLoadRadius, centerTile.y - tileLoadRadius, tileLoadRadius * 2 + 1)
 
                         val linesInViewSquare = mutableMapOf<Int, LineString>()
                         activityLoop@ for (activity in pastActivities?.activitiesList ?: emptyList()){
