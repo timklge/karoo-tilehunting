@@ -59,6 +59,9 @@ class ClusterDrawService(private val karooSystem: KarooSystemServiceProvider,
 
     fun startJob(emitter: Emitter<MapEffect>): Job {
         val tileClusterJob = CoroutineScope(Dispatchers.IO).launch {
+            // First, redrawa everything that should already be drawn
+            lastDrawnPolylines.forEach { emitter.onNext(it) }
+
             val mapZoomFlow = karooSystem.stream<OnMapZoomLevel>().map { (it.zoomLevel / 2).roundToInt() * 2 }
 
             val gpsTileFlow = gpsFlow.map { coordsToTile(it.latitude, it.longitude) }.throttle(10_000L)

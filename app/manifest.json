@@ -3,9 +3,9 @@
   "packageName": "de.timklge.karootilehunting",
   "iconUrl": "https://github.com/timklge/karoo-tilehunting/releases/latest/download/karoo-tilehunting.png",
   "latestApkUrl": "https://github.com/timklge/karoo-tilehunting/releases/latest/download/app-release.apk",
-  "latestVersion": "1.0-beta5",
-  "latestVersionCode": 5,
+  "latestVersion": "1.0-beta6",
+  "latestVersionCode": 6,
   "developer": "timklge",
   "description": "Tilehunting extension for the karoo. Downloads tiles from statshunters.com and displays tile outlines and past activities on the map.",
-  "releaseNotes": "Initial release"
+  "releaseNotes": "Optimize drawing"
 }
