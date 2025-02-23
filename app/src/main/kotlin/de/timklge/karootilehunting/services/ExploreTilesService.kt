@@ -28,6 +28,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class ExploreTilesService(private val karooSystem: KarooSystemServiceProvider) {
+    companion object {
+        val margin = TurfConversion.convertLength(
+            5.0,
+            TurfConstants.UNIT_METERS,
+            TurfConstants.UNIT_DEGREES
+        )
+    }
+    
     fun startJob(context: Context): Job {
         val mediaPlayer = MediaPlayer.create(context, R.raw.alert6)
 
@@ -59,13 +67,6 @@ class ExploreTilesService(private val karooSystem: KarooSystemServiceProvider) {
                     )
 
                     val point = Point.fromLngLat(location.lng, location.lat)
-
-                    // Convert margin from meters to degrees (approximate)
-                    val margin = TurfConversion.convertLength(
-                        20.0,
-                        TurfConstants.UNIT_METERS,
-                        TurfConstants.UNIT_DEGREES
-                    )
 
                     // Check if point is inside the tile boundaries with margin
                     point.longitude() > tileCorners[0].longitude() + margin &&
