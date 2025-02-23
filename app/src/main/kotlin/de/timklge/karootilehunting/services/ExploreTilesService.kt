@@ -1,6 +1,7 @@
 package de.timklge.karootilehunting.services
 
 import android.content.Context
+import android.content.Intent
 import android.media.MediaPlayer
 import android.util.Log
 import com.mapbox.geojson.LineString
@@ -22,6 +23,7 @@ import io.hammerhead.karooext.models.RideState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
@@ -79,12 +81,19 @@ class ExploreTilesService(private val karooSystem: KarooSystemServiceProvider) {
                 }.collect { (_, location) ->
                     Log.i(TAG, "New tile explored: ${location.lat}, ${location.lng}")
 
+                    val intent = Intent("de.timklge.HIDE_POWERBAR").apply {
+                        putExtra("duration", 20_000L)
+                        putExtra("location", "top")
+                    }
+
+                    context.sendBroadcast(intent)
+
                     karooSystem.karooSystemService.dispatch(
                         InRideAlert(id = "newtile-${System.currentTimeMillis()}",
                             icon = R.drawable.crosshair,
                             title = "Tilehunting",
                             detail = "New tile explored",
-                            autoDismissMs = 15_000L,
+                            autoDismissMs = 20_000L,
                             backgroundColor = R.color.lime,
                             textColor = R.color.black
                         )
