@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlin.math.exp
 import kotlin.math.roundToInt
 
 class ClusterDrawService(private val karooSystem: KarooSystemServiceProvider,
@@ -62,7 +63,7 @@ class ClusterDrawService(private val karooSystem: KarooSystemServiceProvider,
             // First, redrawa everything that should already be drawn
             lastDrawnPolylines.forEach { emitter.onNext(it) }
 
-            val mapZoomFlow = karooSystem.stream<OnMapZoomLevel>().map { (it.zoomLevel / 2).roundToInt() * 2 }
+            val mapZoomFlow = karooSystem.stream<OnMapZoomLevel>().map { it.zoomLevel.roundToInt() }
 
             val gpsTileFlow = gpsFlow.map { coordsToTile(it.latitude, it.longitude) }.throttle(10_000L)
 
@@ -142,15 +143,11 @@ class ClusterDrawService(private val karooSystem: KarooSystemServiceProvider,
                         val tileLoadRangeX = centerTile.x - tileLoadRadius..centerTile.x + tileLoadRadius
                         val tileLoadRangeY = centerTile.y - tileLoadRadius..centerTile.y + tileLoadRadius
 
-                        val insetOffset = when (mapZoom) {
-                            in 0..10 -> 175.0
-                            11 -> 125.0
-                            12 -> 75.0
-                            13 -> 37.5
-                            14 -> 25.0
-                            15 -> 15.0
-                            16 -> 10.0
-                            else -> 5.0
+                        val insetOffset = if (mapZoom <= 10) {
+                            175.0
+                        } else {
+                            val calculated = 206.2 * exp(-0.55 * (mapZoom - 10))
+                            calculated.coerceAtLeast(2.0)
                         }
 
                         val recentlyExploredTiles = exploredTilesData.recentlyExploredTiles
