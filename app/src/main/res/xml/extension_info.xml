@@ -19,4 +19,11 @@
         graphical="false"
         icon="@drawable/crosshair"
         typeId="explored_tiles_trip" />
+
+    <DataType
+        description="@string/square_description"
+        displayName="@string/square"
+        graphical="false"
+        icon="@drawable/crosshair"
+        typeId="square" />
 </ExtensionInfo>

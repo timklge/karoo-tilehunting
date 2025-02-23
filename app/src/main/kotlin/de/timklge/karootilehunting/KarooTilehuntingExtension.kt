@@ -1,6 +1,7 @@
 package de.timklge.karootilehunting
 
 import android.util.Log
+import de.timklge.karootilehunting.datatypes.BiggestSquareDataType
 import de.timklge.karootilehunting.datatypes.ExploredTilesDataType
 import de.timklge.karootilehunting.datatypes.RecentlyExploredTilesDataType
 import de.timklge.karootilehunting.services.ClusterDrawService
@@ -35,7 +36,8 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta6
     override val types by lazy {
         listOf(
             ExploredTilesDataType(karooSystem.karooSystemService, applicationContext),
-            RecentlyExploredTilesDataType(karooSystem.karooSystemService, applicationContext)
+            RecentlyExploredTilesDataType(karooSystem.karooSystemService, applicationContext),
+            BiggestSquareDataType(karooSystem.karooSystemService, applicationContext)
         )
     }
 

@@ -5,4 +5,6 @@
     <string name="explored_tiles_description">Tiles you have epxlored</string>
     <string name="explored_tiles_trip">Recent Tiles</string>
     <string name="explored_tiles_trip_description">Tiles you have explored recently</string>
+    <string name="square">Biggest Square</string>
+    <string name="square_description">Size of the biggest explored square of tiles</string>
 </resources>
