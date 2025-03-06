@@ -169,7 +169,7 @@ fun MainScreen(onFinish: () -> Unit) {
                     }) {
                     Icon(Icons.Default.Refresh, contentDescription = "Update Tiles")
                     Spacer(modifier = Modifier.width(5.dp))
-                    Text("Force reload")
+                    Text("Download new activities")
                 }
             }
 
