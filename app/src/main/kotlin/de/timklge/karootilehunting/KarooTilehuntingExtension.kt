@@ -18,7 +18,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
-class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", "1.0-beta7") {
+class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", BuildConfig.VERSION_NAME) {
     companion object {
         const val TAG = "karoo-tilehunting"
     }
