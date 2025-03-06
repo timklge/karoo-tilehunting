@@ -1,5 +1,6 @@
 package de.timklge.karootilehunting.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -50,6 +51,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import de.timklge.karootilehunting.KarooTilehuntingExtension
 import de.timklge.karootilehunting.Tile
 import de.timklge.karootilehunting.datastores.exploredTilesDataStore
 import de.timklge.karootilehunting.datastores.userPreferencesDataStore
@@ -335,6 +337,9 @@ fun MainScreen(onFinish: () -> Unit) {
                                 .fillMaxWidth()
                                 .height(50.dp), onClick = {
                                     statshuntersDialogVisible = false
+                                    val sharecodeUrlRegex = Regex("share/([a-zA-Z0-9]+)")
+                                    dialogEnteredSharecode = sharecodeUrlRegex.find(dialogEnteredSharecode)?.groups?.get(1)?.value ?: dialogEnteredSharecode
+                                    Log.d(KarooTilehuntingExtension.TAG, "Entered sharecode: $dialogEnteredSharecode")
 
                                     coroutineScope.launch {
                                         var changedCode = false
