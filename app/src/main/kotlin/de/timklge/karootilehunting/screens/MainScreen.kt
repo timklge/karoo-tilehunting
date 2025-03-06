@@ -188,7 +188,7 @@ fun MainScreen(onFinish: () -> Unit) {
                         }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Update Tiles")
                         Spacer(modifier = Modifier.width(5.dp))
-                        Text("Force reload")
+                        Text("Download new activities")
                     }
                 }
 
@@ -325,6 +325,9 @@ fun MainScreen(onFinish: () -> Unit) {
                                     .fillMaxWidth()
                                     .height(50.dp), onClick = {
                                         statshuntersDialogVisible = false
+                                        val sharecodeUrlRegex = Regex("share/([a-zA-Z0-9]+)")
+                                        dialogEnteredSharecode = sharecodeUrlRegex.find(dialogEnteredSharecode)?.groups?.get(1)?.value ?: dialogEnteredSharecode
+                                        Log.d(KarooTilehuntingExtension.TAG, "Entered sharecode: $dialogEnteredSharecode")
 
                                         coroutineScope.launch {
                                             var changedCode = false
