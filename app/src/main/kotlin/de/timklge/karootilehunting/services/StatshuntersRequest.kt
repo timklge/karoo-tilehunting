@@ -30,47 +30,47 @@ data class Meta(
 @Serializable
 data class Activity(
     val id: Int,
-    val foreignId: String,
+    val foreignId: String? = null,
     @SerialName("user_id")
-    val userId: Int,
-    val name: String,
+    val userId: Int? = null,
+    val name: String? = null,
     val gearId: Int? = null,
     val gearForeignId: String? = null,
-    val lat: Double,
-    val lng: Double,
-    val distance: Double,
-    val avg: Double,
+    val lat: Double? = null,
+    val lng: Double? = null,
+    val distance: Double? = null,
+    val avg: Double? = null,
     @SerialName("total_elevation_gain")
-    val totalElevationGain: Double,
+    val totalElevationGain: Double? = null,
     @SerialName("moving_time")
-    val movingTime: Int,
+    val movingTime: Int? = null,
     @SerialName("elapsed_time")
-    val elapsedTime: Int,
+    val elapsedTime: Int? = null,
     @SerialName("max_speed")
-    val maxSpeed: Double,
+    val maxSpeed: Double? = null,
     @SerialName("average_cadence")
-    val averageCadence: Double,
+    val averageCadence: Double? = null,
     @SerialName("average_heartrate")
-    val averageHeartrate: Double,
+    val averageHeartrate: Double? = null,
     @SerialName("max_heartrate")
-    val maxHeartrate: Double,
-    val kilojoules: Double,
-    val commute: Int,
-    val trainer: Int,
+    val maxHeartrate: Double? = null,
+    val kilojoules: Double? = null,
+    val commute: Int? = null,
+    val trainer: Int? = null,
     @SerialName("workout_type")
-    val workoutType: Int,
-    val date: String,
-    val timezone: String,
-    val type: String,
+    val workoutType: Int? = null,
+    val date: String? = null,
+    val timezone: String? = null,
+    val type: String? = null,
     @SerialName("created_at")
-    val createdAt: String,
+    val createdAt: String? = null,
     @SerialName("updated_at")
-    val updatedAt: String,
-    val status: String,
-    val utcDate: String,
-    val countries: List<Country>,
-    val regions: List<Region>,
-    val tiles: List<Tile>
+    val updatedAt: String? = null,
+    val status: String? = null,
+    val utcDate: String? = null,
+    val countries: List<Country> = emptyList(),
+    val regions: List<Region> = emptyList(),
+    val tiles: List<Tile> = emptyList()
 )
 
 @Serializable
