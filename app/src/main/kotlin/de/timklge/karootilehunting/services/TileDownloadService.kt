@@ -100,26 +100,26 @@ class TileDownloadService(private val applicationContext: Context, val statshunt
                                         .addAllTiles(activity.tiles.map { tile -> de.timklge.karootilehunting.data.Tile.newBuilder().setX(tile.x).setY(tile.y).build() })
                                         .setId(activity.id)
                                         .setDate(activity.date)
-                                        .setName(activity.name)
-                                        .setAverageCadence(activity.averageCadence)
-                                        .setAverageHeartrate(activity.averageHeartrate)
-                                        .setAvg(activity.avg)
-                                        .setCommute(activity.commute)
-                                        .setDistance(activity.distance)
-                                        .setElapsedTime(activity.elapsedTime)
-                                        .setForeignId(activity.foreignId)
-                                        .setGearForeignId(activity.gearForeignId ?: "")
-                                        .setGearId(activity.gearId ?: 0)
-                                        .setKilojoules(activity.kilojoules)
-                                        .setLat(activity.lat)
-                                        .setLng(activity.lng)
-                                        .setMaxHeartrate(activity.maxHeartrate)
-                                        .setMaxSpeed(activity.maxSpeed)
-                                        .setMovingTime(activity.movingTime)
-                                        .setTotalElevationGain(activity.totalElevationGain)
-                                        .setTrainer(activity.trainer)
-                                        .setUserId(activity.userId)
-                                        .setWorkoutType(activity.workoutType)
+                                        .apply { if (activity.name != null) setName(activity.name) }
+                                        .apply { if (activity.averageCadence != null) setAverageCadence(activity.averageCadence) }
+                                        .apply { if (activity.averageHeartrate != null) setAverageHeartrate(activity.averageHeartrate) }
+                                        .apply { if (activity.avg != null) setAvg(activity.avg) }
+                                        .apply { if (activity.commute != null) setCommute(activity.commute) }
+                                        .apply { if (activity.distance != null) setDistance(activity.distance) }
+                                        .apply { if (activity.elapsedTime != null) setElapsedTime(activity.elapsedTime) }
+                                        .apply { if (activity.foreignId != null) setForeignId(activity.foreignId) }
+                                        .apply { if (activity.gearForeignId != null) setGearForeignId(activity.gearForeignId) }
+                                        .apply { if (activity.gearId != null) setGearId(activity.gearId) }
+                                        .apply { if (activity.kilojoules != null) setKilojoules(activity.kilojoules) }
+                                        .apply { if (activity.lat != null) setLat(activity.lat) }
+                                        .apply { if (activity.lng != null) setLng(activity.lng) }
+                                        .apply { if (activity.maxHeartrate != null) setMaxHeartrate(activity.maxHeartrate) }
+                                        .apply { if (activity.maxSpeed != null) setMaxSpeed(activity.maxSpeed) }
+                                        .apply { if (activity.movingTime != null) setMovingTime(activity.movingTime) }
+                                        .apply { if (activity.totalElevationGain != null) setTotalElevationGain(activity.totalElevationGain) }
+                                        .apply { if (activity.trainer != null) setTrainer(activity.trainer) }
+                                        .apply { if (activity.userId != null) setUserId(activity.userId) }
+                                        .apply { if (activity.workoutType != null) setWorkoutType(activity.workoutType) }
                                         .setEncodedPolyline(line.data)
                                         .build()
                                 } ?: emptyList()
