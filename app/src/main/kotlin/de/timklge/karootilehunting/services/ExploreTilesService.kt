@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
 import android.util.Log
-import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfConversion
@@ -23,8 +22,8 @@ import io.hammerhead.karooext.models.RideState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -55,6 +54,7 @@ class ExploreTilesService(private val karooSystem: KarooSystemServiceProvider) {
             val rideStateFlow = karooSystem.stream<RideState>()
 
             data class StreamData(val exploredTiles: ExploredTilesData, val location: OnLocationChanged, val rideState: RideState)
+            data class StreamDataTile(val exploredTiles: ExploredTilesData, val tile: Tile)
 
             combine(exploredTilesFlow, locationFlow, rideStateFlow) { exploredTiles, location, rideState -> StreamData(exploredTiles, location, rideState) }
                 .filter { (_, _, rideState) -> rideState is RideState.Recording }
@@ -75,12 +75,13 @@ class ExploreTilesService(private val karooSystem: KarooSystemServiceProvider) {
                             point.longitude() < tileCorners[1].longitude() - margin &&
                             point.latitude() < tileCorners[0].latitude() - margin &&
                             point.latitude() > tileCorners[3].latitude() + margin
-                }.filter { (exploredTiles, location) ->
-                    val tile = coordsToTile(location.lat, location.lng)
-
+                }.map { (exploredTiles, location, _) ->
+                    StreamDataTile(exploredTiles, coordsToTile(location.lat, location.lng))
+                }.filter { (exploredTiles, tile) ->
                     !exploredTiles.exploredTiles.contains(tile) && !exploredTiles.recentlyExploredTiles.contains(tile)
-                }.collect { (_, location) ->
-                    Log.i(TAG, "New tile explored: ${location.lat}, ${location.lng}")
+                }.distinctUntilChanged()
+                .collect { (_, tile) ->
+                    Log.i(TAG, "New tile explored: ${tile.x}, ${tile.y}")
 
                     val intent = Intent("de.timklge.HIDE_POWERBAR").apply {
                         putExtra("duration", 20_000L)
@@ -111,8 +112,8 @@ class ExploreTilesService(private val karooSystem: KarooSystemServiceProvider) {
                     mediaPlayer?.start()
 
                     context.exploredTilesDataStore.updateData { data ->
-                        val exploredTiles = data.exploredTilesList.map { Tile(it.x, it.y) }.toSet() + coordsToTile(location.lat, location.lng)
-                        val recentlyExploredTiles = data.recentlyExploredTilesList.map { Tile(it.x, it.y) }.toSet() + coordsToTile(location.lat, location.lng)
+                        val exploredTiles = data.exploredTilesList.map { Tile(it.x, it.y) }.toSet() + tile
+                        val recentlyExploredTiles = data.recentlyExploredTilesList.map { Tile(it.x, it.y) }.toSet() + tile
                         val updatedSquare = Square.getBiggestSquare(exploredTiles)
 
                         data.toBuilder()
