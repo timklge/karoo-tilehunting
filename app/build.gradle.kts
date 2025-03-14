@@ -71,7 +71,7 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "timklge",
             "description" to "Tilehunting extension for Karoo. Downloads tiles from statshunters.com and displays tile outlines and past activities on the map.",
-            "releaseNotes" to "Initial release"
+            "releaseNotes" to "Fix notifications are shown multiple times"
         )
 
         val gson = groovy.json.JsonBuilder(manifest).toPrettyString()
