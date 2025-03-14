@@ -4,6 +4,7 @@ import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfConversion
+import de.timklge.karootilehunting.services.ExploreTilesService.Companion.margin
 import kotlinx.serialization.Serializable
 import kotlin.math.abs
 import kotlin.math.atan
@@ -36,6 +37,27 @@ data class Tile(val x: Int, val y: Int) {
         val latRad = atan(sinh(Math.PI * (1 - 2 * y / n)))
         return Math.toDegrees(latRad)
     }
+
+    fun getCorners(): List<Point> {
+        return listOf(
+            CurrentCorner.TOP_LEFT.getCoords(this),
+            CurrentCorner.TOP_RIGHT.getCoords(this),
+            CurrentCorner.BOTTOM_RIGHT.getCoords(this),
+            CurrentCorner.BOTTOM_LEFT.getCoords(this)
+        )
+    }
+
+    fun isInbounds(lng: Double, lat: Double): Boolean {
+        val tileCorners = getCorners()
+
+        val point = Point.fromLngLat(lng, lat)
+
+        // Check if point is inside the tile boundaries with margin
+        return point.longitude() > tileCorners[0].longitude() + margin &&
+                point.longitude() < tileCorners[1].longitude() - margin &&
+                point.latitude() < tileCorners[0].latitude() - margin &&
+                point.latitude() > tileCorners[3].latitude() + margin
+    }
 }
 
 enum class CurrentCorner {
@@ -47,7 +69,7 @@ enum class CurrentCorner {
             TOP_LEFT -> Point.fromLngLat(tile.getLon(), tile.getLat())
             TOP_RIGHT -> Point.fromLngLat(Tile(tile.x + 1, tile.y).getLon(), tile.getLat())
             BOTTOM_LEFT -> Point.fromLngLat(tile.getLon(), Tile(tile.x, tile.y + 1).getLat())
-            BOTTOM_RIGHT -> Point.fromLngLat(Tile(tile.x + 1, tile.y + 1).getLon(), Tile(tile.x, tile.y + 1).getLat())
+            BOTTOM_RIGHT -> Point.fromLngLat(Tile(tile.x + 1, tile.y + 1).getLon(), Tile(tile.x + 1, tile.y + 1).getLat())
         }
     }
 }
