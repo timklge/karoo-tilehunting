@@ -4,10 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
 import android.util.Log
-import com.mapbox.geojson.Point
 import com.mapbox.turf.TurfConstants
 import com.mapbox.turf.TurfConversion
-import de.timklge.karootilehunting.CurrentCorner
 import de.timklge.karootilehunting.KarooTilehuntingExtension.Companion.TAG
 import de.timklge.karootilehunting.KarooTilehuntingExtension.ExploredTilesData
 import de.timklge.karootilehunting.R
@@ -61,20 +59,7 @@ class ExploreTilesService(private val karooSystem: KarooSystemServiceProvider) {
                 .filter { (_, location, _) ->
                     val tile = coordsToTile(location.lat, location.lng)
 
-                    val tileCorners = listOf(
-                        CurrentCorner.TOP_LEFT.getCoords(tile),
-                        CurrentCorner.TOP_RIGHT.getCoords(tile),
-                        CurrentCorner.BOTTOM_RIGHT.getCoords(tile),
-                        CurrentCorner.BOTTOM_LEFT.getCoords(tile)
-                    )
-
-                    val point = Point.fromLngLat(location.lng, location.lat)
-
-                    // Check if point is inside the tile boundaries with margin
-                    point.longitude() > tileCorners[0].longitude() + margin &&
-                            point.longitude() < tileCorners[1].longitude() - margin &&
-                            point.latitude() < tileCorners[0].latitude() - margin &&
-                            point.latitude() > tileCorners[3].latitude() + margin
+                    tile.isInbounds(location.lng, location.lat)
                 }.map { (exploredTiles, location, _) ->
                     StreamDataTile(exploredTiles, coordsToTile(location.lat, location.lng))
                 }.filter { (exploredTiles, tile) ->
