@@ -13,6 +13,7 @@ import de.timklge.karootilehunting.Square
 import de.timklge.karootilehunting.Tile
 import de.timklge.karootilehunting.coordsToTile
 import de.timklge.karootilehunting.datastores.exploredTilesDataStore
+import io.hammerhead.karooext.models.HardwareType
 import io.hammerhead.karooext.models.InRideAlert
 import io.hammerhead.karooext.models.OnLocationChanged
 import io.hammerhead.karooext.models.PlayBeepPattern
@@ -86,13 +87,26 @@ class ExploreTilesService(private val karooSystem: KarooSystemServiceProvider) {
                         )
                     )
 
-                    karooSystem.karooSystemService.dispatch(
-                        PlayBeepPattern(listOf(
-                            PlayBeepPattern.Tone(4_000, 500),
-                            PlayBeepPattern.Tone(4_500, 500),
-                            PlayBeepPattern.Tone(4_000, 500)
-                        ))
-                    )
+                    if (karooSystem.karooSystemService.hardwareType == HardwareType.K2){
+                        karooSystem.karooSystemService.dispatch(
+                            PlayBeepPattern(listOf(
+                                PlayBeepPattern.Tone(4_000, 500),
+                                PlayBeepPattern.Tone(4_500, 500),
+                                PlayBeepPattern.Tone(4_000, 500)
+                            ))
+                        )
+                    } else {
+                        karooSystem.karooSystemService.dispatch(
+                            PlayBeepPattern(listOf(
+                                PlayBeepPattern.Tone(1000, 150),
+                                PlayBeepPattern.Tone(1300, 150),
+                                PlayBeepPattern.Tone(1600, 200),
+                                PlayBeepPattern.Tone(1900, 300),
+                                PlayBeepPattern.Tone(1600, 150),
+                                PlayBeepPattern.Tone(1300, 150)
+                            ))
+                        )
+                    }
 
                     mediaPlayer?.start()
 
