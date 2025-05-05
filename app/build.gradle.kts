@@ -63,15 +63,20 @@ tasks.register("generateManifest") {
     doLast {
         val manifestFile = file("$projectDir/manifest.json")
         val manifest = mapOf(
-            "label" to "karoo-tilehunting",
+            "label" to "Tilehunting",
             "packageName" to "de.timklge.karootilehunting",
             "iconUrl" to "https://github.com/timklge/karoo-tilehunting/releases/latest/download/karoo-tilehunting.png",
             "latestApkUrl" to "https://github.com/timklge/karoo-tilehunting/releases/latest/download/app-release.apk",
             "latestVersion" to android.defaultConfig.versionName,
             "latestVersionCode" to android.defaultConfig.versionCode,
-            "developer" to "timklge",
+            "developer" to "github.com/timklge",
             "description" to "Tilehunting extension for Karoo. Downloads tiles from statshunters.com and displays tile outlines and past activities on the map.",
-            "releaseNotes" to "Fix notifications are shown multiple times"
+            "releaseNotes" to "* Add screenshots to manifest\n* Fix notifications are shown multiple times",
+            "screenshotUrls" to listOf(
+                "https://github.com/timklge/karoo-tilehunting/releases/latest/download/tiles.png",
+                "https://github.com/timklge/karoo-tilehunting/releases/latest/download/border.png",
+                "https://github.com/timklge/karoo-tilehunting/releases/latest/download/menu.png",
+            ),
         )
 
         val gson = groovy.json.JsonBuilder(manifest).toPrettyString()
