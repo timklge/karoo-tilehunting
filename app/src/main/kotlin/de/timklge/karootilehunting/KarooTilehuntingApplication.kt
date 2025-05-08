@@ -4,8 +4,10 @@ import android.app.Application
 import de.timklge.karootilehunting.services.ClusterDrawService
 import de.timklge.karootilehunting.services.ExploreTilesService
 import de.timklge.karootilehunting.services.KarooSystemServiceProvider
+import de.timklge.karootilehunting.services.StatshuntersBadgesProvider
 import de.timklge.karootilehunting.services.StatshuntersTilesProvider
 import de.timklge.karootilehunting.services.TileDownloadService
+import de.timklge.karootilehunting.services.BadgeDrawService
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -18,6 +20,8 @@ val appModule = module {
     singleOf(::ClusterDrawService)
     singleOf(::TileDownloadService)
     singleOf(::ExploreTilesService)
+    singleOf(::StatshuntersBadgesProvider)
+    singleOf(::BadgeDrawService)
 }
 
 class KarooTilehuntingAppliation : Application() {

@@ -65,7 +65,7 @@ class ClusterDrawService(private val karooSystem: KarooSystemServiceProvider,
 
             val mapZoomFlow = karooSystem.stream<OnMapZoomLevel>().map { it.zoomLevel.roundToInt() }
 
-            val gpsTileFlow = gpsFlow.map { coordsToTile(it.latitude, it.longitude) }.throttle(10_000L)
+            val gpsTileFlow = gpsFlow.map { coordsToTile(it.latitude, it.longitude) }.throttle(20_000L)
 
             val exploredTilesFlow = applicationContext.exploredTilesDataStore.data.map {
                 val exploredTiles = it.exploredTilesList.map { tile -> Tile(tile.x, tile.y) }.toSet()
@@ -284,12 +284,6 @@ class ClusterDrawService(private val karooSystem: KarooSystemServiceProvider,
                         lastDrawnPolylines = emptySet()
                     }
                 }
-        }
-
-        emitter.setCancellable {
-            Log.d(TAG, "Stopping map effect")
-
-            tileClusterJob.cancel()
         }
 
         return tileClusterJob

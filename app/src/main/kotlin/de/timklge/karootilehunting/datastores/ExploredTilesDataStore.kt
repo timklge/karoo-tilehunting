@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.Serializer
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.dataStore
 import com.google.protobuf.InvalidProtocolBufferException
 import de.timklge.karootilehunting.KarooTilehuntingExtension
@@ -28,6 +29,9 @@ object ExploredTilesSerializer : Serializer<ExploredTiles> {
         t.writeTo(output)
 }
 
-val Context.exploredTilesDataStore: DataStore<ExploredTiles> by dataStore(fileName = "explored_tiles.pb",
-    serializer = ExploredTilesSerializer
+val Context.exploredTilesDataStore: DataStore<ExploredTiles> by dataStore(
+    fileName = "explored_tiles.pb",
+    serializer = ExploredTilesSerializer,
+    corruptionHandler = ReplaceFileCorruptionHandler { ExploredTilesSerializer.defaultValue }
 )
+

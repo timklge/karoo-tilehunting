@@ -4,6 +4,7 @@ import android.util.Log
 import de.timklge.karootilehunting.datatypes.BiggestSquareDataType
 import de.timklge.karootilehunting.datatypes.ExploredTilesDataType
 import de.timklge.karootilehunting.datatypes.RecentlyExploredTilesDataType
+import de.timklge.karootilehunting.services.BadgeDrawService
 import de.timklge.karootilehunting.services.ClusterDrawService
 import de.timklge.karootilehunting.services.ExploreTilesService
 import de.timklge.karootilehunting.services.KarooSystemServiceProvider
@@ -26,6 +27,7 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", BuildConfi
     private val karooSystem: KarooSystemServiceProvider by inject()
     private val tileDownloadService: TileDownloadService by inject()
     private val tileDrawer: ClusterDrawService by inject()
+    private val badgeDrawService: BadgeDrawService by inject()
     private val exploreTilesService: ExploreTilesService by inject()
 
     private var updateLastKnownGpsPositionJob: Job? = null
@@ -46,7 +48,15 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", BuildConfi
     override fun startMap(emitter: Emitter<MapEffect>) {
         Log.d(TAG, "Starting map effect")
 
-        tileDrawer.startJob(emitter)
+        val tileDrawerJob = tileDrawer.startJob(emitter)
+        val badgeDrawerJob = badgeDrawService.startJob(emitter)
+
+        emitter.setCancellable {
+            Log.d(TAG, "Stopping map effect")
+
+            tileDrawerJob.cancel()
+            badgeDrawerJob.cancel()
+        }
     }
 
     override fun onCreate() {

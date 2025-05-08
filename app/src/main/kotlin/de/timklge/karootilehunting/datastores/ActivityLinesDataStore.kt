@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.Serializer
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.dataStore
 import com.google.protobuf.InvalidProtocolBufferException
 import de.timklge.karootilehunting.KarooTilehuntingExtension
@@ -28,6 +29,9 @@ object ActivityLinesDataStore : Serializer<PastActivities> {
         t.writeTo(output)
 }
 
-val Context.activityLinesDataStore: DataStore<PastActivities> by dataStore(fileName = "activity_lines.pb",
-    serializer = ActivityLinesDataStore
+val Context.activityLinesDataStore: DataStore<PastActivities> by dataStore(
+    fileName = "activity_lines.pb",
+    serializer = ActivityLinesDataStore,
+    corruptionHandler = ReplaceFileCorruptionHandler { ActivityLinesDataStore.defaultValue }
 )
+
