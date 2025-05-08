@@ -44,7 +44,7 @@ class BadgeDrawService(private val karooSystem: KarooSystemServiceProvider,
                             lat = it.coordinates.latitude,
                             lng = it.coordinates.longitude,
                             name = it.name,
-                            type = if (it.achievedAt.isNullOrBlank()) Symbol.POI.Types.GENERIC else Symbol.POI.Types.SUMMIT
+                            type = if (!it.achievedAt.isNullOrBlank()) Symbol.POI.Types.GENERIC else Symbol.POI.Types.SUMMIT
                         )
                     }
 

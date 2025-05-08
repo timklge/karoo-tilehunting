@@ -71,9 +71,10 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Tilehunting extension for Karoo. Downloads tiles from statshunters.com and displays tile outlines and past activities on the map.",
-            "releaseNotes" to "* Add screenshots to manifest\n* Fix notifications are shown multiple times",
+            "releaseNotes" to "* Add badges\n* Add screenshots to manifest\n* Fix notifications are shown multiple times",
             "screenshotUrls" to listOf(
                 "https://github.com/timklge/karoo-tilehunting/releases/latest/download/tiles.png",
+                "https://github.com/timklge/karoo-tilehunting/releases/latest/download/badges.png",
                 "https://github.com/timklge/karoo-tilehunting/releases/latest/download/border.png",
                 "https://github.com/timklge/karoo-tilehunting/releases/latest/download/menu.png",
             ),

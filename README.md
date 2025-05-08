@@ -11,6 +11,7 @@ Compatible with Karoo 2 and Karoo 3 devices.
 
 ![Menu](menu.png)
 ![Tiles](tiles.png)
+![Badges](badges.png)
 ![Border](border.png)
 
 ## Installation
@@ -34,7 +35,7 @@ After installing this app on your Karoo, open the app from the extensions menu. 
 "Connnect StatsHunters" button to connect your account. You will need to open the
 [StatsHunters share page](https://www.statshunters.com/share) on your phone or computer, create
 a sharing link that includes your heatmap with tiles and activities enabled and type
-in the sharing code of your new link on the Karoo.
+in the sharing code of your new link on the Karoo. Optionally, enable "Badges" to fetch badges.
 
 After saving your code, the app will try to download the activities and your explored tiles.
 Make sure you are connected to WiFi for this step. The app will then draw the outlines of your explored and unexplored tiles
@@ -54,10 +55,13 @@ The following colors are used:
 If you ride into a new tile, the app will show an alert and draw the tile in bright green.
 You can reset the bright green colored tiles by tapping the "Reset Tiles" button in the app's menu.
 
+If you enable "Badges" sharing on your sharing link, the app will fetch your achieved badges and show them in the app's menu. You can initiate navigation to one of the badge locations by tapping on the badge in the menu. The app will also add the badge locations as POIs on the Karoo map.
+
 To view past rides, enable the respective setting in the app's main menu. The app will then show your past rides on the map as light gray lines.
 
 You can temporarily hide the tile outlines on the map by tapping the stack icon in the same way you can hide the native heatmap.
-You can add the count of explored tiles and count of recently explored tiles to your data pages as data fields.
+
+Also, you can add the count of explored tiles and count of recently explored tiles to your data pages as data fields.
 
 ## Credits
 
