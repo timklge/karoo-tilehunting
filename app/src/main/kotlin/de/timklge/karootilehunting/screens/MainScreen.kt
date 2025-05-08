@@ -68,6 +68,7 @@ import de.timklge.karootilehunting.KarooTilehuntingExtension
 import de.timklge.karootilehunting.R
 import de.timklge.karootilehunting.Tile
 import de.timklge.karootilehunting.data.Badge
+import de.timklge.karootilehunting.data.GpsCoords
 import de.timklge.karootilehunting.datastores.achievementsDataStore
 import de.timklge.karootilehunting.datastores.exploredTilesDataStore
 import de.timklge.karootilehunting.datastores.userPreferencesDataStore
@@ -110,6 +111,59 @@ fun KarooSystemService.streamUserProfile(): Flow<UserProfile> {
         }
         awaitClose {
             removeConsumer(listenerId)
+        }
+    }
+}
+
+@Composable
+fun DrawBadge(lastKnownPositionStore: GpsCoords?, badge: Badge, profile: UserProfile?, karooSystemService: KarooSystemService){
+    Row(modifier = Modifier.fillMaxWidth().height(50.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        if (!badge.achievedAt.isNullOrBlank()) {
+            Icon(Icons.Default.Done, contentDescription = "Achieved", modifier = Modifier.size(24.dp))
+
+            Spacer(modifier = Modifier.width(5.dp))
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(badge.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+
+            val achievedAt = parseInstant(badge.achievedAt)
+            val subtitle = buildList {
+                if (badge.coordinates != null && lastKnownPositionStore != null && (badge.coordinates.longitude != 0.0 && badge.coordinates.latitude != 0.0)) {
+                    val coords = Point.fromLngLat(badge.coordinates.longitude, badge.coordinates.latitude)
+                    val lastKnownPosition = lastKnownPositionStore?.let { lastKnownPositionStore -> Point.fromLngLat(lastKnownPositionStore.longitude, lastKnownPositionStore.latitude) }
+
+                    if (lastKnownPosition != null) {
+                        val distance = TurfMeasurement.distance(coords, lastKnownPosition, TurfConstants.UNIT_METERS)
+
+                        if (profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL) {
+                            add("${(distance / 1609.34).toInt()}mi")
+                        } else {
+                            add("${(distance / 1000).toInt()}km")
+                        }
+                    }
+                }
+
+                if (achievedAt != null) add(badge.achievedAt.toString())
+            }.joinToString(" - ")
+
+            if (subtitle.isNotBlank()) Text(subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth(), color = Color.LightGray)
+        }
+
+        if (badge.coordinates != null && badge.coordinates.longitude != 0.0 && badge.coordinates.latitude != 0.0){
+            Spacer(modifier = Modifier.width(5.dp))
+
+            Icon(Icons.Default.LocationOn, contentDescription = "Navigate", modifier = Modifier.size(24.dp).clickable {
+                karooSystemService.dispatch(LaunchPinDrop(Symbol.POI(
+                    id = "${badge.id}",
+                    lat = badge.coordinates.latitude,
+                    lng = badge.coordinates.longitude,
+                    name = "Navigate to ${badge.name}",
+                )))
+            })
         }
     }
 }
@@ -475,64 +529,11 @@ fun MainScreen(onFinish: () -> Unit) {
                                 Text("You have $badgesCount badges.")
                             }
 
-                            @Composable
-                            fun DrawBadge(badge: Badge){
-                                Row(modifier = Modifier.fillMaxWidth().height(50.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    if (!badge.achievedAt.isNullOrBlank()) {
-                                        Icon(Icons.Default.Done, contentDescription = "Achieved", modifier = Modifier.size(24.dp))
-
-                                        Spacer(modifier = Modifier.width(5.dp))
-                                    }
-
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(badge.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-
-                                        val achievedAt = parseInstant(badge.achievedAt)
-                                        val subtitle = buildList {
-                                            if (badge.coordinates != null && lastKnownPositionStore != null && (badge.coordinates.longitude != 0.0 && badge.coordinates.latitude != 0.0)) {
-                                                val coords = Point.fromLngLat(badge.coordinates.longitude, badge.coordinates.latitude)
-                                                val lastKnownPosition = lastKnownPositionStore?.let { lastKnownPositionStore -> Point.fromLngLat(lastKnownPositionStore.longitude, lastKnownPositionStore.latitude) }
-
-                                                if (lastKnownPosition != null) {
-                                                    val distance = TurfMeasurement.distance(coords, lastKnownPosition, TurfConstants.UNIT_METERS)
-
-                                                    if (profile?.preferredUnit?.distance == UserProfile.PreferredUnit.UnitType.IMPERIAL) {
-                                                        add("${(distance / 1609.34).toInt()}mi")
-                                                    } else {
-                                                        add("${(distance / 1000).toInt()}km")
-                                                    }
-                                                }
-                                            }
-
-                                            if (achievedAt != null) add(badge.achievedAt.toString())
-                                        }.joinToString(" - ")
-
-                                        if (subtitle.isNotBlank()) Text(subtitle, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth(), color = Color.LightGray)
-                                    }
-
-                                    if (badge.coordinates != null && badge.coordinates.longitude != 0.0 && badge.coordinates.latitude != 0.0){
-                                        Spacer(modifier = Modifier.width(5.dp))
-
-                                        Icon(Icons.Default.LocationOn, contentDescription = "Navigate", modifier = Modifier.size(24.dp).clickable {
-                                            karooSystemService.dispatch(LaunchPinDrop(Symbol.POI(
-                                                id = "${badge.id}",
-                                                lat = badge.coordinates.latitude,
-                                                lng = badge.coordinates.longitude,
-                                                name = "Navigate to ${badge.name}",
-                                            )))
-                                        })
-                                    }
-                                }
-                            }
-
                             LazyColumn {
                                 items(badgesWithCoordsList.size) { index ->
                                     val badge = badgesWithCoordsList.getOrNull(index)
                                     if (badge != null) {
-                                        DrawBadge(badge)
+                                        DrawBadge(lastKnownPositionStore, badge, profile, karooSystemService)
                                     }
                                 }
 
@@ -545,7 +546,7 @@ fun MainScreen(onFinish: () -> Unit) {
                                 items(badgesWithoutCoordsList.size) { index ->
                                     val badge = badgesWithoutCoordsList.getOrNull(index)
                                     if (badge != null) {
-                                        DrawBadge(badge)
+                                        DrawBadge(lastKnownPositionStore, badge, profile, karooSystemService)
                                     }
                                 }
 
