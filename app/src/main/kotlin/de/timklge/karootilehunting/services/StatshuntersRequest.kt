@@ -84,3 +84,15 @@ data class Country(
 class Region(
     // Placeholder for region properties. Adjust as needed.
 )
+
+@Serializable
+data class Achievement(
+    val id: Int,
+    @SerialName("achieved_at")
+    val achievedAt: String
+)
+
+@Serializable
+data class AchievementsResponse(
+    val achievements: List<Achievement>
+)

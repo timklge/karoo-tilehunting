@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.Serializer
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.dataStore
 import com.google.protobuf.InvalidProtocolBufferException
 import de.timklge.karootilehunting.KarooTilehuntingExtension
@@ -28,6 +29,9 @@ object UserPreferencesSerializer : Serializer<UserPreferences> {
         t.writeTo(output)
 }
 
-val Context.userPreferencesDataStore: DataStore<UserPreferences> by dataStore(fileName = "user_preferences.pb",
-    serializer = UserPreferencesSerializer
+val Context.userPreferencesDataStore: DataStore<UserPreferences> by dataStore(
+    fileName = "user_preferences.pb",
+    serializer = UserPreferencesSerializer,
+    corruptionHandler = ReplaceFileCorruptionHandler { UserPreferencesSerializer.defaultValue }
 )
+

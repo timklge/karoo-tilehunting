@@ -1,0 +1,22 @@
+syntax = "proto3";
+option java_package = "de.timklge.karootilehunting.data";
+option java_multiple_files = true;
+
+import "coords.proto";
+
+message Badge {
+  uint32 id = 1;
+  string name = 2;
+  string info = 3;
+  string icon = 4;
+  int32 level = 5;
+  int32 sort = 6;
+  GpsCoords coordinates = 7;
+  string achievedAt = 8;
+}
+
+message Badges {
+  uint64 lastDownloadedAt = 1;
+  string error = 2;
+  repeated Badge badges = 3;
+}

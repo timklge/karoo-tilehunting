@@ -2,16 +2,13 @@ package de.timklge.karootilehunting.services
 
 import android.content.Context
 import android.util.Log
-import com.mapbox.geojson.LineString
-import com.mapbox.turf.TurfConstants
-import com.mapbox.turf.TurfConversion
-import com.mapbox.turf.TurfMeasurement
-import com.mapbox.turf.TurfMisc
-import com.mapbox.turf.TurfTransformation
 import de.timklge.karootilehunting.KarooTilehuntingExtension.Companion.TAG
 import de.timklge.karootilehunting.Square
 import de.timklge.karootilehunting.Tile
 import de.timklge.karootilehunting.data.Activity
+import de.timklge.karootilehunting.data.Badges
+import de.timklge.karootilehunting.data.ExploredTiles
+import de.timklge.karootilehunting.datastores.achievementsDataStore
 import de.timklge.karootilehunting.datastores.activityLinesDataStore
 import de.timklge.karootilehunting.datastores.exploredTilesDataStore
 import de.timklge.karootilehunting.datastores.userPreferencesDataStore
@@ -26,7 +23,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-class TileDownloadService(private val applicationContext: Context, val statshuntersTilesProvider: StatshuntersTilesProvider) {
+class TileDownloadService(private val applicationContext: Context, val statshuntersTilesProvider: StatshuntersTilesProvider, val statshuntersBadgesProvider: StatshuntersBadgesProvider) {
     fun startJob(): Job {
         return CoroutineScope(Dispatchers.IO).launch {
             applicationContext.exploredTilesDataStore.updateData {
@@ -52,16 +49,31 @@ class TileDownloadService(private val applicationContext: Context, val statshunt
                     Log.d(TAG, "Starting tile download job")
 
                     applicationContext.exploredTilesDataStore.updateData {
-                        it.toBuilder()
+                        ExploredTiles.newBuilder()
                             .setIsDownloading(true)
                             .setLastDownloadError("")
                             .build()
                     }
 
+                    applicationContext.achievementsDataStore.updateData {
+                        Badges.newBuilder().build()
+                    }
+
                     try {
+                        val sharecode = applicationContext.userPreferencesDataStore.data.first().statshuntersSharecode.trim()
+
+                        statshuntersBadgesProvider.requestBadges(sharecode).let { badges ->
+                            val achievedBadgeCount = badges.badgesList.filter { !it.achievedAt.isNullOrBlank() }.size
+                            Log.d(TAG, "Received ${badges.badgesCount} badges, $achievedBadgeCount achieved")
+
+                            applicationContext.achievementsDataStore.updateData {
+                                badges
+                            }
+                        }
+
                         var activityCount = 0
-                        val sharecode = applicationContext.userPreferencesDataStore.data.first().statshuntersSharecode
-                        statshuntersTilesProvider.requestTiles(sharecode.trim()).collect { (activities, lines) ->
+
+                        statshuntersTilesProvider.requestTiles(sharecode).collect { (activities, lines) ->
                             Log.d(TAG, "Received ${activities.size} activities with ${lines?.size} lines")
                             val hasLines = !lines.isNullOrEmpty() && lines.size == activities.size
 
@@ -154,7 +166,7 @@ class TileDownloadService(private val applicationContext: Context, val statshunt
 
                         applicationContext.exploredTilesDataStore.updateData {
                             var errorMessage = e.message ?: "Unknown error"
-                            if (e is StatshuntersTilesProvider.HttpDownloadError){
+                            if (e is HttpDownloadError){
                                 when (e.httpError) {
                                     401, 403 -> errorMessage = "Access denied"
                                     0 -> errorMessage = "No internet connection"
