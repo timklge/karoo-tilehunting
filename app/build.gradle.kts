@@ -59,7 +59,7 @@ android {
 tasks.register("generateManifest") {
     description = "Generates manifest.json with current version information"
     group = "build"
-
+        
     doLast {
         val manifestFile = file("$projectDir/manifest.json")
         val manifest = mapOf(
@@ -71,7 +71,7 @@ tasks.register("generateManifest") {
             "latestVersionCode" to android.defaultConfig.versionCode,
             "developer" to "github.com/timklge",
             "description" to "Tilehunting extension for Karoo. Downloads tiles from statshunters.com and displays tile outlines and past activities on the map.",
-            "releaseNotes" to "* Add badges\n* Add screenshots to manifest\n* Fix notifications are shown multiple times",
+            "releaseNotes" to "* Add option to disable tile drawing\n* Add badges\n* Add screenshots to manifest",
             "screenshotUrls" to listOf(
                 "https://github.com/timklge/karoo-tilehunting/releases/latest/download/tiles.png",
                 "https://github.com/timklge/karoo-tilehunting/releases/latest/download/badges.png",
