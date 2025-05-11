@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.net.UnknownHostException
 
 class TileDownloadService(private val applicationContext: Context, val statshuntersTilesProvider: StatshuntersTilesProvider, val statshuntersBadgesProvider: StatshuntersBadgesProvider) {
     fun startJob(): Job {
@@ -172,6 +173,9 @@ class TileDownloadService(private val applicationContext: Context, val statshunt
                                     0 -> errorMessage = "No internet connection"
                                     404 -> errorMessage = "Not found"
                                 }
+                            }
+                            if (e is UnknownHostException) {
+                                errorMessage = "No internet connection"
                             }
 
                             it.toBuilder().setLastDownloadError(errorMessage).setIsDownloading(false).setLastDownloadedAt(System.currentTimeMillis()).build()
