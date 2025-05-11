@@ -414,24 +414,22 @@ fun MainScreen(onFinish: () -> Unit) {
                                 Switch(checked = showActivityLines, onCheckedChange = { showActivityLines = it})
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text("Show activity lines")
-                            }
-
-                            Spacer(modifier = Modifier.padding(30.dp))
+                            }   
                         }
 
                         Spacer(modifier = Modifier.padding(30.dp))
 
-                if (exitDialogVisible) {
-                    AlertDialog(onDismissRequest = { exitDialogVisible = false },
-                        confirmButton = { Button(onClick = {
-                            onFinish()
-                        }) { Text("Yes") } },
-                        dismissButton = { Button(onClick = {
-                            exitDialogVisible = false
-                        }) { Text("No") } },
-                        text = { Text("Do you really want to exit?") }
-                    )
-                }
+                        if (exitDialogVisible) {
+                            AlertDialog(onDismissRequest = { exitDialogVisible = false },
+                                confirmButton = { Button(onClick = {
+                                    onFinish()
+                                }) { Text("Yes") } },
+                                dismissButton = { Button(onClick = {
+                                    exitDialogVisible = false
+                                }) { Text("No") } },
+                                text = { Text("Do you really want to exit?") }
+                            )
+                        }
 
                         if (savedDialogVisible){
                             AlertDialog(onDismissRequest = { savedDialogVisible = false },
@@ -539,16 +537,18 @@ fun MainScreen(onFinish: () -> Unit) {
                                     }
                                 }
 
-                                item {
-                                    Spacer(modifier = Modifier.height(5.dp))
-                                    Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color.LightGray))
-                                    Spacer(modifier = Modifier.height(5.dp))
-                                }
+                                if (badgesWithoutCoordsList.isNotEmpty()){
+                                    item {
+                                        Spacer(modifier = Modifier.height(5.dp))
+                                        Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color.LightGray))
+                                        Spacer(modifier = Modifier.height(5.dp))
+                                    }
 
-                                items(badgesWithoutCoordsList.size) { index ->
-                                    val badge = badgesWithoutCoordsList.getOrNull(index)
-                                    if (badge != null) {
-                                        DrawBadge(lastKnownPositionStore, badge, profile, karooSystemService)
+                                    items(badgesWithoutCoordsList.size) { index ->
+                                        val badge = badgesWithoutCoordsList.getOrNull(index)
+                                        if (badge != null) {
+                                            DrawBadge(lastKnownPositionStore, badge, profile, karooSystemService)
+                                        }
                                     }
                                 }
 
