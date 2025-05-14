@@ -251,8 +251,10 @@ fun MainScreen(onFinish: () -> Unit) {
             availableBadgesCount = badgesStore?.badgesCount ?: 0
             badgesCount = badgesStore?.badgesList?.count { !it.achievedAt.isNullOrBlank() } ?: 0
             badgesWithCoordsList = badgesStore?.badgesList?.filter { badge ->
-                val coords = badge.coordinates?.let { coords -> Point.fromLngLat(coords.longitude, coords.latitude) }
-                val lastKnownPosition = lastKnownPositionStore?.let { lastKnownPositionStore -> Point.fromLngLat(lastKnownPositionStore.longitude, lastKnownPositionStore.latitude) }
+                val coords = badge.coordinates?.let { coords -> Point.fromLngLat(coords.longitude, coords.latitude) }?.let { if (it.longitude() != 0.0 && it.latitude() != 0.0) it else null }
+                val lastKnownPosition = lastKnownPositionStore
+                    ?.let { lastKnownPositionStore -> Point.fromLngLat(lastKnownPositionStore.longitude, lastKnownPositionStore.latitude) }
+                    ?.let { if (it.longitude() != 0.0 && it.latitude() != 0.0) it else null }
                 val distance = if (coords != null && lastKnownPosition != null) TurfMeasurement.distance(coords, lastKnownPosition, TurfConstants.UNIT_METERS) else null
 
                 distance != null && distance < 200_000
@@ -537,7 +539,7 @@ fun MainScreen(onFinish: () -> Unit) {
                                     }
                                 }
 
-                                if (badgesWithoutCoordsList.isNotEmpty()){
+                                if (badgesWithoutCoordsList.isNotEmpty() && badgesWithCoordsList.isNotEmpty()){
                                     item {
                                         Spacer(modifier = Modifier.height(5.dp))
                                         Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color.LightGray))
