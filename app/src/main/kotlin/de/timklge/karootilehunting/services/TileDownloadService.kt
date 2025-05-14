@@ -45,7 +45,7 @@ class TileDownloadService(private val applicationContext: Context, val statshunt
             combine(settingsCodeFlow, exploredTilesFlow) { sharecode, exploredTiles -> sharecode to exploredTiles }
                 .map { (sharecode, exploredTiles) -> StreamData(sharecode, exploredTiles.lastDownloadedAt) }
                 .distinctUntilChanged()
-                .filter { (_, lastDownloadedAt) -> lastDownloadedAt < System.currentTimeMillis() - 1000 * 60 * 60 * 24 * 7 }
+                .filter { (_, lastDownloadedAt) -> lastDownloadedAt <= 0 }
                 .collect {
                     Log.d(TAG, "Starting tile download job")
 
