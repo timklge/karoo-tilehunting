@@ -123,9 +123,11 @@ fun DrawBadge(lastKnownPositionStore: GpsCoords?, badge: Badge, profile: UserPro
     ) {
         if (!badge.achievedAt.isNullOrBlank()) {
             Icon(Icons.Default.Done, contentDescription = "Achieved", modifier = Modifier.size(24.dp))
-
-            Spacer(modifier = Modifier.width(5.dp))
+        } else {
+            Icon(Icons.Default.Clear, contentDescription = "Not achieved", modifier = Modifier.size(24.dp))
         }
+
+        Spacer(modifier = Modifier.width(5.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(badge.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -545,12 +547,12 @@ fun MainScreen(onFinish: () -> Unit) {
                                         Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color.LightGray))
                                         Spacer(modifier = Modifier.height(5.dp))
                                     }
+                                }
 
-                                    items(badgesWithoutCoordsList.size) { index ->
-                                        val badge = badgesWithoutCoordsList.getOrNull(index)
-                                        if (badge != null) {
-                                            DrawBadge(lastKnownPositionStore, badge, profile, karooSystemService)
-                                        }
+                                items(badgesWithoutCoordsList.size) { index ->
+                                    val badge = badgesWithoutCoordsList.getOrNull(index)
+                                    if (badge != null) {
+                                        DrawBadge(lastKnownPositionStore, badge, profile, karooSystemService)
                                     }
                                 }
 
