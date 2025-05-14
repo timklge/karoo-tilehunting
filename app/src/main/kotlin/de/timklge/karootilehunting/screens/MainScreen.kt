@@ -123,9 +123,11 @@ fun DrawBadge(lastKnownPositionStore: GpsCoords?, badge: Badge, profile: UserPro
     ) {
         if (!badge.achievedAt.isNullOrBlank()) {
             Icon(Icons.Default.Done, contentDescription = "Achieved", modifier = Modifier.size(24.dp))
-
-            Spacer(modifier = Modifier.width(5.dp))
+        } else {
+            Icon(Icons.Default.Clear, contentDescription = "Not achieved", modifier = Modifier.size(24.dp))
         }
+
+        Spacer(modifier = Modifier.width(5.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(badge.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -251,8 +253,10 @@ fun MainScreen(onFinish: () -> Unit) {
             availableBadgesCount = badgesStore?.badgesCount ?: 0
             badgesCount = badgesStore?.badgesList?.count { !it.achievedAt.isNullOrBlank() } ?: 0
             badgesWithCoordsList = badgesStore?.badgesList?.filter { badge ->
-                val coords = badge.coordinates?.let { coords -> Point.fromLngLat(coords.longitude, coords.latitude) }
-                val lastKnownPosition = lastKnownPositionStore?.let { lastKnownPositionStore -> Point.fromLngLat(lastKnownPositionStore.longitude, lastKnownPositionStore.latitude) }
+                val coords = badge.coordinates?.let { coords -> Point.fromLngLat(coords.longitude, coords.latitude) }?.let { if (it.longitude() != 0.0 && it.latitude() != 0.0) it else null }
+                val lastKnownPosition = lastKnownPositionStore
+                    ?.let { lastKnownPositionStore -> Point.fromLngLat(lastKnownPositionStore.longitude, lastKnownPositionStore.latitude) }
+                    ?.let { if (it.longitude() != 0.0 && it.latitude() != 0.0) it else null }
                 val distance = if (coords != null && lastKnownPosition != null) TurfMeasurement.distance(coords, lastKnownPosition, TurfConstants.UNIT_METERS) else null
 
                 distance != null && distance < 200_000
@@ -537,18 +541,18 @@ fun MainScreen(onFinish: () -> Unit) {
                                     }
                                 }
 
-                                if (badgesWithoutCoordsList.isNotEmpty()){
+                                if (badgesWithoutCoordsList.isNotEmpty() && badgesWithCoordsList.isNotEmpty()){
                                     item {
                                         Spacer(modifier = Modifier.height(5.dp))
                                         Spacer(modifier = Modifier.height(1.dp).fillMaxWidth().background(Color.LightGray))
                                         Spacer(modifier = Modifier.height(5.dp))
                                     }
+                                }
 
-                                    items(badgesWithoutCoordsList.size) { index ->
-                                        val badge = badgesWithoutCoordsList.getOrNull(index)
-                                        if (badge != null) {
-                                            DrawBadge(lastKnownPositionStore, badge, profile, karooSystemService)
-                                        }
+                                items(badgesWithoutCoordsList.size) { index ->
+                                    val badge = badgesWithoutCoordsList.getOrNull(index)
+                                    if (badge != null) {
+                                        DrawBadge(lastKnownPositionStore, badge, profile, karooSystemService)
                                     }
                                 }
 
