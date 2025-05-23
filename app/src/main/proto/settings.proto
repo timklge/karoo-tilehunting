@@ -15,4 +15,5 @@ message UserPreferences {
   bool showActivityLines = 6;
   bool enableTileAlertSound = 7;
   repeated CustomTune customTileExploreSound = 8;
+  bool enableCustomTileExploreSound = 9;
 }
