@@ -2,10 +2,17 @@ syntax = "proto3";
 option java_package = "de.timklge.karootilehunting.data";
 option java_multiple_files = true;
 
+message CustomTune {
+  uint32 freq = 1;
+  uint32 duration = 2;
+}
+
 message UserPreferences {
   string statshuntersSharecode = 2;
   uint32 tileDrawRange = 3;
   bool hideGridLines = 4;
   bool isDisabled = 5;
   bool showActivityLines = 6;
+  bool enableTileAlertSound = 7;
+  repeated CustomTune customTileExploreSound = 8;
 }

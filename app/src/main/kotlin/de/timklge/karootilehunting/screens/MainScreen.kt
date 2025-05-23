@@ -44,6 +44,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -170,6 +171,8 @@ fun DrawBadge(lastKnownPositionStore: GpsCoords?, badge: Badge, profile: UserPro
     }
 }
 
+data class CustomTune(val freq: Int, val duration: Int)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(onFinish: () -> Unit) {
@@ -195,6 +198,8 @@ fun MainScreen(onFinish: () -> Unit) {
     var hideGrid by remember { mutableStateOf(false) }
     var isDisabled by remember { mutableStateOf(false) }
     var showActivityLines by remember { mutableStateOf(false) }
+    var playTileAlertSound by remember { mutableStateOf(false) }
+    var playTileAlertCustomSound by remember { mutableStateOf(mutableListOf<CustomTune>()) }
 
     var availableBadgesCount by remember { mutableIntStateOf(0) }
     var badgesCount by remember { mutableIntStateOf(0) }
@@ -217,6 +222,7 @@ fun MainScreen(onFinish: () -> Unit) {
                 .setHideGridLines(hideGrid)
                 .setIsDisabled(isDisabled)
                 .setShowActivityLines(showActivityLines)
+                .setEnableTileAlertSound(playTileAlertSound)
                 .build()
         }
     }
@@ -241,9 +247,11 @@ fun MainScreen(onFinish: () -> Unit) {
             recentTilesCount = exploredTilesStore?.recentlyExploredTilesCount ?: 0
             exploredTilesCount = exploredTiles?.size ?: 0
             squareSize = exploredTilesStore?.biggestSquareSize ?: 0
-            hideGrid = settingsStore?.hideGridLines ?: false
-            isDisabled = settingsStore?.isDisabled ?: false
-            showActivityLines = settingsStore?.showActivityLines ?: false
+            hideGrid = settingsStore?.hideGridLines == true
+            isDisabled = settingsStore?.isDisabled == true
+            showActivityLines = settingsStore?.showActivityLines == true
+            playTileAlertSound = settingsStore?.enableTileAlertSound != false
+            playTileAlertCustomSound = settingsStore?.customTileExploreSoundList?.map { CustomTune(it.freq, it.duration) }?.toMutableList() ?: mutableListOf()
         }
     }
 
@@ -412,6 +420,12 @@ fun MainScreen(onFinish: () -> Unit) {
                                 Switch(checked = !hideGrid, onCheckedChange = { hideGrid = !it})
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text("Show grid")
+                            }
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Switch(checked = !playTileAlertSound, onCheckedChange = { playTileAlertSound = !it})
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text("Play alert sound")
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
