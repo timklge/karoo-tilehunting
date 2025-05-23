@@ -13,7 +13,7 @@ message UserPreferences {
   bool hideGridLines = 4;
   bool isDisabled = 5;
   bool showActivityLines = 6;
-  bool enableTileAlertSound = 7;
+  bool disableTileAlertSound = 7;
   repeated CustomTune customTileExploreSound = 8;
   bool enableCustomTileExploreSound = 9;
 }

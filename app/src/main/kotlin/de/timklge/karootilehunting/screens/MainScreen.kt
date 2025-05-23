@@ -204,7 +204,7 @@ fun MainScreen(onFinish: () -> Unit) {
     var hideGrid by remember { mutableStateOf(false) }
     var isDisabled by remember { mutableStateOf(false) }
     var showActivityLines by remember { mutableStateOf(false) }
-    var playTileAlertSound by remember { mutableStateOf(false) }
+    var disableTileAlertSound by remember { mutableStateOf(false) }
     var playCustomTileAlertSound by remember { mutableStateOf(false) }
     val playCustomTileAlertSoundTunes = remember { mutableStateListOf<CustomTune>() }
 
@@ -236,7 +236,7 @@ fun MainScreen(onFinish: () -> Unit) {
                 .setHideGridLines(hideGrid)
                 .setIsDisabled(isDisabled)
                 .setShowActivityLines(showActivityLines)
-                .setEnableTileAlertSound(playTileAlertSound)
+                .setDisableTileAlertSound(disableTileAlertSound)
                 .clearCustomTileExploreSound()
                 .addAllCustomTileExploreSound(protoCustomSounds)
                 .setEnableCustomTileExploreSound(playCustomTileAlertSound)
@@ -267,7 +267,7 @@ fun MainScreen(onFinish: () -> Unit) {
             hideGrid = settingsStore?.hideGridLines == true
             isDisabled = settingsStore?.isDisabled == true
             showActivityLines = settingsStore?.showActivityLines == true
-            playTileAlertSound = settingsStore?.enableTileAlertSound != false
+            disableTileAlertSound = settingsStore?.disableTileAlertSound == true
             playCustomTileAlertSound = settingsStore?.enableCustomTileExploreSound == true
 
             val loadedSounds = settingsStore?.customTileExploreSoundList?.map { CustomTune(it.freq, it.duration) }
@@ -458,12 +458,12 @@ fun MainScreen(onFinish: () -> Unit) {
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Switch(checked = playTileAlertSound, onCheckedChange = { playTileAlertSound = it})
+                                Switch(checked = !disableTileAlertSound, onCheckedChange = { disableTileAlertSound = !it})
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text("Play alert sound")
                             }
 
-                            if (playTileAlertSound) {
+                            if (!disableTileAlertSound) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Switch(checked = playCustomTileAlertSound, onCheckedChange = { playCustomTileAlertSound = it})
                                     Spacer(modifier = Modifier.width(10.dp))

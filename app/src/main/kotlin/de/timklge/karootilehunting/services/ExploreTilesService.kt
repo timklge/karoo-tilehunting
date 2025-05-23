@@ -91,7 +91,7 @@ class ExploreTilesService(private val karooSystem: KarooSystemServiceProvider) {
                         )
                     )
 
-                    if (settings.enableTileAlertSound){
+                    if (settings.disableTileAlertSound != true){
                         if (!settings.enableCustomTileExploreSound || settings.customTileExploreSoundList.isEmpty()){
                             if (karooSystem.karooSystemService.hardwareType == HardwareType.K2){
                                 karooSystem.karooSystemService.dispatch(
