@@ -19,12 +19,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -32,6 +36,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -44,6 +49,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -56,6 +62,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -74,7 +81,9 @@ import de.timklge.karootilehunting.datastores.exploredTilesDataStore
 import de.timklge.karootilehunting.datastores.userPreferencesDataStore
 import de.timklge.karootilehunting.lastKnownGpsCoordsDataStore
 import io.hammerhead.karooext.KarooSystemService
+import io.hammerhead.karooext.models.HardwareType
 import io.hammerhead.karooext.models.LaunchPinDrop
+import io.hammerhead.karooext.models.PlayBeepPattern
 import io.hammerhead.karooext.models.Symbol
 import io.hammerhead.karooext.models.UserProfile
 import kotlinx.coroutines.channels.awaitClose
@@ -170,6 +179,8 @@ fun DrawBadge(lastKnownPositionStore: GpsCoords?, badge: Badge, profile: UserPro
     }
 }
 
+data class CustomTune(val freq: Int, val duration: Int)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(onFinish: () -> Unit) {
@@ -188,13 +199,14 @@ fun MainScreen(onFinish: () -> Unit) {
     var squareSize by remember { mutableIntStateOf(0) }
     var recentTilesCount by remember { mutableIntStateOf(0) }
 
-    var savedDialogVisible by remember { mutableStateOf(false) }
-    var exitDialogVisible by remember { mutableStateOf(false) }
     var clearedRecentExploredTilesDialogVisible by remember { mutableStateOf(false) }
     var tileLoadRange by remember { mutableStateOf("3") }
     var hideGrid by remember { mutableStateOf(false) }
     var isDisabled by remember { mutableStateOf(false) }
     var showActivityLines by remember { mutableStateOf(false) }
+    var disableTileAlertSound by remember { mutableStateOf(false) }
+    var playCustomTileAlertSound by remember { mutableStateOf(false) }
+    val playCustomTileAlertSoundTunes = remember { mutableStateListOf<CustomTune>() }
 
     var availableBadgesCount by remember { mutableIntStateOf(0) }
     var badgesCount by remember { mutableIntStateOf(0) }
@@ -211,12 +223,23 @@ fun MainScreen(onFinish: () -> Unit) {
     suspend fun updateSettings(){
         Log.d(KarooTilehuntingExtension.TAG, "Updating settings")
 
-        ctx.userPreferencesDataStore.updateData { preferences ->
+        ctx.userPreferencesDataStore.updateData { preferences: de.timklge.karootilehunting.data.UserPreferences ->
+            val protoCustomSounds = playCustomTileAlertSoundTunes.map { tune: CustomTune ->
+                de.timklge.karootilehunting.data.CustomTune.newBuilder()
+                    .setFreq(tune.freq)
+                    .setDuration(tune.duration)
+                    .build()
+            }
+
             preferences.toBuilder()
                 .setTileDrawRange(tileLoadRange.toInt())
                 .setHideGridLines(hideGrid)
                 .setIsDisabled(isDisabled)
                 .setShowActivityLines(showActivityLines)
+                .setDisableTileAlertSound(disableTileAlertSound)
+                .clearCustomTileExploreSound()
+                .addAllCustomTileExploreSound(protoCustomSounds)
+                .setEnableCustomTileExploreSound(playCustomTileAlertSound)
                 .build()
         }
     }
@@ -241,9 +264,23 @@ fun MainScreen(onFinish: () -> Unit) {
             recentTilesCount = exploredTilesStore?.recentlyExploredTilesCount ?: 0
             exploredTilesCount = exploredTiles?.size ?: 0
             squareSize = exploredTilesStore?.biggestSquareSize ?: 0
-            hideGrid = settingsStore?.hideGridLines ?: false
-            isDisabled = settingsStore?.isDisabled ?: false
-            showActivityLines = settingsStore?.showActivityLines ?: false
+            hideGrid = settingsStore?.hideGridLines == true
+            isDisabled = settingsStore?.isDisabled == true
+            showActivityLines = settingsStore?.showActivityLines == true
+            disableTileAlertSound = settingsStore?.disableTileAlertSound == true
+            playCustomTileAlertSound = settingsStore?.enableCustomTileExploreSound == true
+
+            val loadedSounds = settingsStore?.customTileExploreSoundList?.map { CustomTune(it.freq, it.duration) }
+            if (loadedSounds != null) {
+                if (playCustomTileAlertSoundTunes.toList() != loadedSounds) {
+                    playCustomTileAlertSoundTunes.clear()
+                    playCustomTileAlertSoundTunes.addAll(loadedSounds)
+                }
+            } else {
+                if (playCustomTileAlertSoundTunes.isNotEmpty()) {
+                    playCustomTileAlertSoundTunes.clear()
+                }
+            }
         }
     }
 
@@ -346,7 +383,7 @@ fun MainScreen(onFinish: () -> Unit) {
                         if (exploredTilesStore?.isDownloading != true && !settingsStore?.statshuntersSharecode.isNullOrBlank()){
                             FilledTonalButton(modifier = Modifier
                                 .fillMaxWidth()
-                                .height(60.dp),
+                                .height(50.dp),
                                 onClick = {
                                     coroutineScope.launch {
                                         ctx.exploredTilesDataStore.updateData { exploredTiles ->
@@ -418,37 +455,113 @@ fun MainScreen(onFinish: () -> Unit) {
                                 Switch(checked = showActivityLines, onCheckedChange = { showActivityLines = it})
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Text("Show activity lines")
-                            }   
+                            }
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Switch(checked = !disableTileAlertSound, onCheckedChange = { disableTileAlertSound = !it})
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text("Play alert sound")
+                            }
+
+                            if (!disableTileAlertSound) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Switch(checked = playCustomTileAlertSound, onCheckedChange = { playCustomTileAlertSound = it})
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Text("Custom sound sequence")
+                                }
+
+                                if (playCustomTileAlertSound){
+                                    playCustomTileAlertSoundTunes.forEachIndexed { index, tune ->
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            OutlinedTextField(
+                                                value = tune.freq.toString(),
+                                                onValueChange = { textValue ->
+                                                    textValue.toIntOrNull()?.let { newFreq ->
+                                                        if (index < playCustomTileAlertSoundTunes.size) {
+                                                            playCustomTileAlertSoundTunes[index] = tune.copy(freq = newFreq)
+                                                        }
+                                                    }
+                                                },
+                                                label = { Text("Freq (Hz)") },
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                modifier = Modifier.weight(1f),
+                                                singleLine = true
+                                            )
+                                            OutlinedTextField(
+                                                value = tune.duration.toString(),
+                                                onValueChange = { textValue ->
+                                                    textValue.toIntOrNull()?.let { newDuration ->
+                                                        if (index < playCustomTileAlertSoundTunes.size) {
+                                                            playCustomTileAlertSoundTunes[index] = tune.copy(duration = newDuration)
+                                                        }
+                                                    }
+                                                },
+                                                label = { Text("Duration (ms)") },
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                modifier = Modifier.weight(1f),
+                                                singleLine = true
+                                            )
+                                            IconButton(onClick = {
+                                                if (index < playCustomTileAlertSoundTunes.size) {
+                                                    playCustomTileAlertSoundTunes.removeAt(index)
+                                                }
+                                            }) {
+                                                Icon(Icons.Default.Delete, contentDescription = "Remove Tone")
+                                            }
+                                        }
+                                    }
+
+                                    val defaultTone = if (karooSystemService.hardwareType == HardwareType.K2) {
+                                        CustomTune(2000, 200)
+                                    } else {
+                                        CustomTune(440, 200)
+                                    }
+
+                                    FilledTonalButton(
+                                        onClick = { playCustomTileAlertSoundTunes.add(defaultTone) },
+                                        modifier = Modifier.fillMaxWidth().height(50.dp)
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = "Add Tone")
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text("Add Tone")
+                                    }
+
+                                    if (playCustomTileAlertSoundTunes.isNotEmpty()){
+                                        FilledTonalButton(
+                                            onClick = {
+                                                val playTones = PlayBeepPattern(
+                                                    playCustomTileAlertSoundTunes.map { tune ->
+                                                        PlayBeepPattern.Tone(
+                                                            frequency = tune.freq,
+                                                            durationMs = tune.duration
+                                                        )
+                                                    }
+                                                )
+
+                                                karooSystemService.dispatch(playTones)
+                                            },
+                                            modifier = Modifier.fillMaxWidth().height(50.dp)
+                                        ) {
+                                            Icon(Icons.Default.PlayArrow, contentDescription = "Play Tones")
+                                            Spacer(modifier = Modifier.width(5.dp))
+                                            Text("Play")
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         Spacer(modifier = Modifier.padding(30.dp))
 
-                        if (exitDialogVisible) {
-                            AlertDialog(onDismissRequest = { exitDialogVisible = false },
-                                confirmButton = { Button(onClick = {
-                                    onFinish()
-                                }) { Text("Yes") } },
-                                dismissButton = { Button(onClick = {
-                                    exitDialogVisible = false
-                                }) { Text("No") } },
-                                text = { Text("Do you really want to exit?") }
-                            )
-                        }
-
-                        if (savedDialogVisible){
-                            AlertDialog(onDismissRequest = { savedDialogVisible = false },
-                                confirmButton = { Button(onClick = {
-                                    savedDialogVisible = false
-                                }) { Text("OK") } },
-                                text = { Text("Settings saved successfully.") }
-                            )
-                        }
-
                         if (clearedRecentExploredTilesDialogVisible){
-                            AlertDialog(onDismissRequest = { savedDialogVisible = false },
+                            AlertDialog(onDismissRequest = { clearedRecentExploredTilesDialogVisible = false },
                                 confirmButton = { Button(onClick = {
                                     clearedRecentExploredTilesDialogVisible = false
-                                }) { Text("OK") } },
+                                }, modifier = Modifier.height(50.dp)) { Text("OK") } },
                                 text = { Text("Recent tiles cleared.") }
                             )
                         }
