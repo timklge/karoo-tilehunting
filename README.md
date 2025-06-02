@@ -7,6 +7,9 @@
 This extension for Karoo devices adds a map overlay that shows explored tiles and an alert if you ride into an unexplored one. Optionally, past activities are also displayed on the map. Tiles and activities are fetched from [statshunters.com](https://www.statshunters.com).
 You can read more about tilehunting in the [StatsHunters FAQ](https://www.statshunters.com/faq-10-what-are-explorer-tiles) or watch the [nice introduction video](https://www.youtube.com/watch?v=e63UKfvPw9g) for an overview on StatsHunters' features.
 
+> [!NOTE]
+> Please note that this extension is not affiliated with Statshunters. If you like it, consider [supporting Statshunters](https://statshunters.com/donate)!
+
 Compatible with Karoo 2 and Karoo 3 devices.
 
 ![Menu](menu.png)
