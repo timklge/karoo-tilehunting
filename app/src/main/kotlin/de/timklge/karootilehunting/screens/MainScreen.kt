@@ -205,6 +205,7 @@ fun MainScreen(onFinish: () -> Unit) {
     var isDisabled by remember { mutableStateOf(false) }
     var showActivityLines by remember { mutableStateOf(false) }
     var disableTileAlertSound by remember { mutableStateOf(false) }
+    var disableTileNotification by remember { mutableStateOf(false) }
     var playCustomTileAlertSound by remember { mutableStateOf(false) }
     val playCustomTileAlertSoundTunes = remember { mutableStateListOf<CustomTune>() }
 
@@ -240,6 +241,7 @@ fun MainScreen(onFinish: () -> Unit) {
                 .clearCustomTileExploreSound()
                 .addAllCustomTileExploreSound(protoCustomSounds)
                 .setEnableCustomTileExploreSound(playCustomTileAlertSound)
+                .setDisableTileNotification(disableTileNotification)
                 .build()
         }
     }
@@ -269,6 +271,7 @@ fun MainScreen(onFinish: () -> Unit) {
             showActivityLines = settingsStore?.showActivityLines == true
             disableTileAlertSound = settingsStore?.disableTileAlertSound == true
             playCustomTileAlertSound = settingsStore?.enableCustomTileExploreSound == true
+            disableTileNotification = settingsStore?.disableTileNotification == true
 
             val loadedSounds = settingsStore?.customTileExploreSoundList?.map { CustomTune(it.freq, it.duration) }
             if (loadedSounds != null) {
@@ -458,97 +461,105 @@ fun MainScreen(onFinish: () -> Unit) {
                             }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Switch(checked = !disableTileAlertSound, onCheckedChange = { disableTileAlertSound = !it})
+                                Switch(checked = !disableTileNotification, onCheckedChange = { disableTileNotification = !it})
                                 Spacer(modifier = Modifier.width(10.dp))
-                                Text("Play alert sound")
+                                Text("Show tile notifications")
                             }
 
-                            if (!disableTileAlertSound) {
+                            if (!disableTileNotification) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Switch(checked = playCustomTileAlertSound, onCheckedChange = { playCustomTileAlertSound = it})
+                                    Switch(checked = !disableTileAlertSound, onCheckedChange = { disableTileAlertSound = !it})
                                     Spacer(modifier = Modifier.width(10.dp))
-                                    Text("Custom sound sequence")
+                                    Text("Play alert sound")
                                 }
 
-                                if (playCustomTileAlertSound){
-                                    playCustomTileAlertSoundTunes.forEachIndexed { index, tune ->
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            OutlinedTextField(
-                                                value = tune.freq.toString(),
-                                                onValueChange = { textValue ->
-                                                    textValue.toIntOrNull()?.let { newFreq ->
-                                                        if (index < playCustomTileAlertSoundTunes.size) {
-                                                            playCustomTileAlertSoundTunes[index] = tune.copy(freq = newFreq)
+                                if (!disableTileAlertSound) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Switch(checked = playCustomTileAlertSound, onCheckedChange = { playCustomTileAlertSound = it})
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text("Custom sound sequence")
+                                    }
+
+                                    if (playCustomTileAlertSound){
+                                        playCustomTileAlertSoundTunes.forEachIndexed { index, tune ->
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                OutlinedTextField(
+                                                    value = tune.freq.toString(),
+                                                    onValueChange = { textValue ->
+                                                        textValue.toIntOrNull()?.let { newFreq ->
+                                                            if (index < playCustomTileAlertSoundTunes.size) {
+                                                                playCustomTileAlertSoundTunes[index] = tune.copy(freq = newFreq)
+                                                            }
                                                         }
-                                                    }
-                                                },
-                                                label = { Text("Freq (Hz)") },
-                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                                modifier = Modifier.weight(1f),
-                                                singleLine = true
-                                            )
-                                            OutlinedTextField(
-                                                value = tune.duration.toString(),
-                                                onValueChange = { textValue ->
-                                                    textValue.toIntOrNull()?.let { newDuration ->
-                                                        if (index < playCustomTileAlertSoundTunes.size) {
-                                                            playCustomTileAlertSoundTunes[index] = tune.copy(duration = newDuration)
+                                                    },
+                                                    label = { Text("Freq (Hz)") },
+                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                    modifier = Modifier.weight(1f),
+                                                    singleLine = true
+                                                )
+                                                OutlinedTextField(
+                                                    value = tune.duration.toString(),
+                                                    onValueChange = { textValue ->
+                                                        textValue.toIntOrNull()?.let { newDuration ->
+                                                            if (index < playCustomTileAlertSoundTunes.size) {
+                                                                playCustomTileAlertSoundTunes[index] = tune.copy(duration = newDuration)
+                                                            }
                                                         }
+                                                    },
+                                                    label = { Text("Duration (ms)") },
+                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                    modifier = Modifier.weight(1f),
+                                                    singleLine = true
+                                                )
+                                                IconButton(onClick = {
+                                                    if (index < playCustomTileAlertSoundTunes.size) {
+                                                        playCustomTileAlertSoundTunes.removeAt(index)
                                                     }
-                                                },
-                                                label = { Text("Duration (ms)") },
-                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                                modifier = Modifier.weight(1f),
-                                                singleLine = true
-                                            )
-                                            IconButton(onClick = {
-                                                if (index < playCustomTileAlertSoundTunes.size) {
-                                                    playCustomTileAlertSoundTunes.removeAt(index)
+                                                }) {
+                                                    Icon(Icons.Default.Delete, contentDescription = "Remove Tone")
                                                 }
-                                            }) {
-                                                Icon(Icons.Default.Delete, contentDescription = "Remove Tone")
                                             }
                                         }
-                                    }
 
-                                    val defaultTone = if (karooSystemService.hardwareType == HardwareType.K2) {
-                                        CustomTune(2000, 200)
-                                    } else {
-                                        CustomTune(440, 200)
-                                    }
+                                        val defaultTone = if (karooSystemService.hardwareType == HardwareType.K2) {
+                                            CustomTune(2000, 200)
+                                        } else {
+                                            CustomTune(440, 200)
+                                        }
 
-                                    FilledTonalButton(
-                                        onClick = { playCustomTileAlertSoundTunes.add(defaultTone) },
-                                        modifier = Modifier.fillMaxWidth().height(50.dp)
-                                    ) {
-                                        Icon(Icons.Default.Add, contentDescription = "Add Tone")
-                                        Spacer(modifier = Modifier.width(5.dp))
-                                        Text("Add Tone")
-                                    }
-
-                                    if (playCustomTileAlertSoundTunes.isNotEmpty()){
                                         FilledTonalButton(
-                                            onClick = {
-                                                val playTones = PlayBeepPattern(
-                                                    playCustomTileAlertSoundTunes.map { tune ->
-                                                        PlayBeepPattern.Tone(
-                                                            frequency = tune.freq,
-                                                            durationMs = tune.duration
-                                                        )
-                                                    }
-                                                )
-
-                                                karooSystemService.dispatch(playTones)
-                                            },
+                                            onClick = { playCustomTileAlertSoundTunes.add(defaultTone) },
                                             modifier = Modifier.fillMaxWidth().height(50.dp)
                                         ) {
-                                            Icon(Icons.Default.PlayArrow, contentDescription = "Play Tones")
+                                            Icon(Icons.Default.Add, contentDescription = "Add Tone")
                                             Spacer(modifier = Modifier.width(5.dp))
-                                            Text("Play")
+                                            Text("Add Tone")
+                                        }
+
+                                        if (playCustomTileAlertSoundTunes.isNotEmpty()){
+                                            FilledTonalButton(
+                                                onClick = {
+                                                    val playTones = PlayBeepPattern(
+                                                        playCustomTileAlertSoundTunes.map { tune ->
+                                                            PlayBeepPattern.Tone(
+                                                                frequency = tune.freq,
+                                                                durationMs = tune.duration
+                                                            )
+                                                        }
+                                                    )
+
+                                                    karooSystemService.dispatch(playTones)
+                                                },
+                                                modifier = Modifier.fillMaxWidth().height(50.dp)
+                                            ) {
+                                                Icon(Icons.Default.PlayArrow, contentDescription = "Play Tones")
+                                                Spacer(modifier = Modifier.width(5.dp))
+                                                Text("Play")
+                                            }
                                         }
                                     }
                                 }

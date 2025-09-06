@@ -16,4 +16,5 @@ message UserPreferences {
   bool disableTileAlertSound = 7;
   repeated CustomTune customTileExploreSound = 8;
   bool enableCustomTileExploreSound = 9;
+  bool disableTileNotification = 10;
 }
