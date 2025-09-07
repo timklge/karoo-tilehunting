@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlin.collections.map
 
 class ExploreTilesService(private val karooSystem: KarooSystemServiceProvider) {
     companion object {
@@ -73,62 +72,63 @@ class ExploreTilesService(private val karooSystem: KarooSystemServiceProvider) {
                 .collect { (_, tile, settings) ->
                     Log.i(TAG, "New tile explored: ${tile.x}, ${tile.y}")
 
-                    val intent = Intent("de.timklge.HIDE_POWERBAR").apply {
-                        putExtra("duration", 10_000L)
-                        putExtra("location", "top")
-                    }
+                    if (!settings.disableTileNotification) {
+                        val intent = Intent("de.timklge.HIDE_POWERBAR").apply {
+                            putExtra("duration", 10_000L)
+                            putExtra("location", "top")
+                        }
 
-                    context.sendBroadcast(intent)
+                        context.sendBroadcast(intent)
 
-                    karooSystem.karooSystemService.dispatch(
-                        InRideAlert(id = "newtile-${System.currentTimeMillis()}",
-                            icon = R.drawable.crosshair,
-                            title = "Tilehunting",
-                            detail = "New tile explored",
-                            autoDismissMs = 10_000L,
-                            backgroundColor = R.color.lime,
-                            textColor = R.color.black
+                        karooSystem.karooSystemService.dispatch(
+                            InRideAlert(id = "newtile-${System.currentTimeMillis()}",
+                                icon = R.drawable.crosshair,
+                                title = "Tilehunting",
+                                detail = "New tile explored",
+                                autoDismissMs = 10_000L,
+                                backgroundColor = R.color.lime,
+                                textColor = R.color.black
+                            )
                         )
-                    )
 
-                    if (settings.disableTileAlertSound != true){
-                        if (!settings.enableCustomTileExploreSound || settings.customTileExploreSoundList.isEmpty()){
-                            if (karooSystem.karooSystemService.hardwareType == HardwareType.K2){
-                                karooSystem.karooSystemService.dispatch(
-                                    PlayBeepPattern(listOf(
-                                        PlayBeepPattern.Tone(4_000, 500),
-                                        PlayBeepPattern.Tone(4_500, 500),
-                                        PlayBeepPattern.Tone(4_000, 500)
-                                    ))
-                                )
-                            } else {
-                                karooSystem.karooSystemService.dispatch(
-                                    PlayBeepPattern(listOf(
-                                        PlayBeepPattern.Tone(1000, 150),
-                                        PlayBeepPattern.Tone(1300, 150),
-                                        PlayBeepPattern.Tone(1600, 200),
-                                        PlayBeepPattern.Tone(1900, 300),
-                                        PlayBeepPattern.Tone(1600, 150),
-                                        PlayBeepPattern.Tone(1300, 150)
-                                    ))
-                                )
-                            }
-                        } else {
-                            val playTones = PlayBeepPattern(
-                                settings.customTileExploreSoundList.map { tune ->
-                                    PlayBeepPattern.Tone(
-                                        frequency = tune.freq,
-                                        durationMs = tune.duration
+                        if (!settings.disableTileAlertSound){
+                            if (!settings.enableCustomTileExploreSound || settings.customTileExploreSoundList.isEmpty()){
+                                if (karooSystem.karooSystemService.hardwareType == HardwareType.K2){
+                                    karooSystem.karooSystemService.dispatch(
+                                        PlayBeepPattern(listOf(
+                                            PlayBeepPattern.Tone(4_000, 500),
+                                            PlayBeepPattern.Tone(4_500, 500),
+                                            PlayBeepPattern.Tone(4_000, 500)
+                                        ))
+                                    )
+                                } else {
+                                    karooSystem.karooSystemService.dispatch(
+                                        PlayBeepPattern(listOf(
+                                            PlayBeepPattern.Tone(1000, 150),
+                                            PlayBeepPattern.Tone(1300, 150),
+                                            PlayBeepPattern.Tone(1600, 200),
+                                            PlayBeepPattern.Tone(1900, 300),
+                                            PlayBeepPattern.Tone(1600, 150),
+                                            PlayBeepPattern.Tone(1300, 150)
+                                        ))
                                     )
                                 }
-                            )
+                            } else {
+                                val playTones = PlayBeepPattern(
+                                    settings.customTileExploreSoundList.map { tune ->
+                                        PlayBeepPattern.Tone(
+                                            frequency = tune.freq,
+                                            durationMs = tune.duration
+                                        )
+                                    }
+                                )
 
-                            karooSystem.karooSystemService.dispatch(playTones)
+                                karooSystem.karooSystemService.dispatch(playTones)
+                            }
+
+                            mediaPlayer?.start()
                         }
                     }
-
-
-                    mediaPlayer?.start()
 
                     context.exploredTilesDataStore.updateData { data ->
                         val exploredTiles = data.exploredTilesList.map { Tile(it.x, it.y) }.toSet() + tile
