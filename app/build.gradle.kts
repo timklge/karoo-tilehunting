@@ -78,6 +78,7 @@ tasks.register("generateManifest") {
                 "https://github.com/timklge/karoo-tilehunting/releases/latest/download/border.png",
                 "https://github.com/timklge/karoo-tilehunting/releases/latest/download/menu.png",
             ),
+            "tags" to listOf("entertainment")
         )
 
         val gson = groovy.json.JsonBuilder(manifest).toPrettyString()
