@@ -17,8 +17,8 @@
     <color name="elevate2">#FFE900</color>
     <color name="elevate3">#FC6100</color>
 
-    <color name="blue">#2196F3</color>
-    <color name="green">#FF009688</color>
-    <color name="red">#FF5252</color>
-    <color name="lime">#15FF00</color>
+    <color name="blue">#BB2196F3</color>
+    <color name="green">#BB009688</color>
+    <color name="red">#BBFF5252</color>
+    <color name="lime">#BB15FF00</color>
 </resources>
