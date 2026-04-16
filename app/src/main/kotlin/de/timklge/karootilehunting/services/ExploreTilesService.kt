@@ -86,7 +86,7 @@ class ExploreTilesService(private val karooSystem: KarooSystemServiceProvider) {
                                 title = "Tilehunting",
                                 detail = "New tile explored",
                                 autoDismissMs = 10_000L,
-                                backgroundColor = R.color.lime,
+                                backgroundColor = R.color.limeOpaque,
                                 textColor = R.color.black
                             )
                         )
