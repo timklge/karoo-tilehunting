@@ -73,8 +73,10 @@ class ExploreTilesService(private val karooSystem: KarooSystemServiceProvider) {
                     Log.i(TAG, "New tile explored: ${tile.x}, ${tile.y}")
 
                     if (!settings.disableTileNotification) {
+                        val autoDismissMillis = (settings.autoDismissMs.takeIf { it > 0 } ?: 10) * 1000L
+
                         val intent = Intent("de.timklge.HIDE_POWERBAR").apply {
-                            putExtra("duration", 10_000L)
+                            putExtra("duration", autoDismissMillis)
                             putExtra("location", "top")
                         }
 
@@ -85,7 +87,7 @@ class ExploreTilesService(private val karooSystem: KarooSystemServiceProvider) {
                                 icon = R.drawable.crosshair,
                                 title = "Tilehunting",
                                 detail = "New tile explored",
-                                autoDismissMs = 10_000L,
+                                autoDismissMs = autoDismissMillis,
                                 backgroundColor = R.color.limeOpaque,
                                 textColor = R.color.black
                             )
