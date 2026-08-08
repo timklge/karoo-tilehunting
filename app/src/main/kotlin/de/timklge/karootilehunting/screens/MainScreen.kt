@@ -206,6 +206,7 @@ fun MainScreen(onFinish: () -> Unit) {
     var showActivityLines by remember { mutableStateOf(false) }
     var disableTileAlertSound by remember { mutableStateOf(false) }
     var disableTileNotification by remember { mutableStateOf(false) }
+    var autoDismissMs by remember { mutableStateOf("10") }
     var playCustomTileAlertSound by remember { mutableStateOf(false) }
     val playCustomTileAlertSoundTunes = remember { mutableStateListOf<CustomTune>() }
 
@@ -242,6 +243,7 @@ fun MainScreen(onFinish: () -> Unit) {
                 .addAllCustomTileExploreSound(protoCustomSounds)
                 .setEnableCustomTileExploreSound(playCustomTileAlertSound)
                 .setDisableTileNotification(disableTileNotification)
+                .setAutoDismissMs(autoDismissMs.toIntOrNull()?.coerceIn(1, 30) ?: 10)
                 .build()
         }
     }
@@ -317,6 +319,7 @@ fun MainScreen(onFinish: () -> Unit) {
         coroutineScope.launch {
             val tileDrawRange = settingsStore?.tileDrawRange?.let { if(it == 0) 3 else it } ?: 3
             tileLoadRange = "${tileDrawRange.coerceIn(2..5)}"
+            autoDismissMs = settingsStore?.autoDismissMs?.let { if (it == 0) "10" else it.toString() } ?: "10"
         }
     }
 
@@ -467,6 +470,19 @@ fun MainScreen(onFinish: () -> Unit) {
                             }
 
                             if (!disableTileNotification) {
+                                OutlinedTextField(
+                                    value = autoDismissMs,
+                                    onValueChange = { textValue ->
+                                        textValue.toIntOrNull()?.let { value ->
+                                            autoDismissMs = value.coerceIn(1, 30).toString()
+                                        } ?: run { if (textValue.isEmpty()) autoDismissMs = "" }
+                                    },
+                                    label = { Text("Notification duration (s)") },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true
+                                )
+
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Switch(checked = !disableTileAlertSound, onCheckedChange = { disableTileAlertSound = !it})
                                     Spacer(modifier = Modifier.width(10.dp))
