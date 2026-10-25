@@ -31,7 +31,7 @@ class StatshuntersTilesProvider(
             val newActivities = requestTilePage(shareCode, page)
             val newLines = try {
                 requestLinePage(shareCode, page)
-            } catch(e: HttpDownloadError){
+            } catch(e: Exception){
                 Log.e(KarooTilehuntingExtension.TAG, "Failed to download lines", e)
 
                 null
