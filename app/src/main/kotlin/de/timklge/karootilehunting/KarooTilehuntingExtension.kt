@@ -27,11 +27,15 @@ import de.timklge.karootilehunting.services.KarooSystemServiceProvider
 import de.timklge.karootilehunting.services.TileDownloadService
 import io.hammerhead.karooext.extension.KarooExtension
 import io.hammerhead.karooext.internal.Emitter
+import de.timklge.karootilehunting.datastores.userPreferencesDataStore
+import de.timklge.karootilehunting.util.Updater
 import io.hammerhead.karooext.models.MapEffect
+import io.hammerhead.karooext.models.SystemNotification
 import io.hammerhead.karooext.models.OnLocationChanged
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
@@ -50,6 +54,7 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", BuildConfi
     private var serviceJob: Job? = null
     private var tileDownloadJob: Job? = null
     private var addExploredTilesJob: Job? = null
+    private var updateCheckJob: Job? = null
 
     override val types by lazy {
         listOf(
@@ -93,11 +98,45 @@ class KarooTilehuntingExtension : KarooExtension("karoo-tilehunting", BuildConfi
         addExploredTilesJob = exploreTilesService.startJob(this)
 
         tileDownloadJob = tileDownloadService.startJob()
+
+        checkForUpdates()
+    }
+
+    private fun checkForUpdates() {
+        if (updateCheckJob != null) return
+
+        updateCheckJob = CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val settings = applicationContext.userPreferencesDataStore.data.first()
+                if (settings.disableUpdateNotifications) {
+                    Log.d(TAG, "Update notifications disabled, skipping update check")
+                    return@launch
+                }
+
+                val update = Updater.checkForUpdate(this@KarooTilehuntingExtension, karooSystem.karooSystemService)
+                if (update != null) {
+                    karooSystem.karooSystemService.dispatch(SystemNotification(
+                        id = "karoo-tilehunting-update",
+                        message = "Tilehunting ${update.latestVersion} available",
+                        subText = "You are running version ${update.currentVersion}. Open Tilehunting for details.",
+                        header = "Tilehunting update",
+                        style = SystemNotification.Style.UPDATE,
+                        action = "Open",
+                        actionIntent = "de.timklge.karootilehunting.MainActivity",
+                    ))
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Update check failed", e)
+            }
+        }
     }
 
     override fun onDestroy() {
         serviceJob?.cancel()
         serviceJob = null
+
+        updateCheckJob?.cancel()
+        updateCheckJob = null
 
         tileDownloadJob?.cancel()
         tileDownloadJob = null

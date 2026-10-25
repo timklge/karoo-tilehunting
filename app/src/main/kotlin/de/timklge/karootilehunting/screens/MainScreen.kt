@@ -16,6 +16,9 @@
 
 package de.timklge.karootilehunting.screens
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
@@ -96,6 +99,7 @@ import de.timklge.karootilehunting.datastores.achievementsDataStore
 import de.timklge.karootilehunting.datastores.exploredTilesDataStore
 import de.timklge.karootilehunting.datastores.userPreferencesDataStore
 import de.timklge.karootilehunting.lastKnownGpsCoordsDataStore
+import de.timklge.karootilehunting.util.Updater
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.HardwareType
 import io.hammerhead.karooext.models.LaunchPinDrop
@@ -197,6 +201,24 @@ fun DrawBadge(lastKnownPositionStore: GpsCoords?, badge: Badge, profile: UserPro
 
 data class CustomTune(val freq: Int, val duration: Int)
 
+private var updateNotificationShown = false
+
+private const val SETTINGS_APP_PACKAGE = "io.hammerhead.settingsapp"
+private const val APP_INFO_ACTION = "io.hammerhead.action.APP_INFO"
+
+private fun openAppInfoInSettings(context: Context) {
+    val intent = Intent(APP_INFO_ACTION).apply {
+        setPackage(SETTINGS_APP_PACKAGE)
+        Updater.getManifestUrl(context)?.let { putExtra("manifestUrl", it) }
+    }
+
+    try {
+        context.startActivity(intent)
+    } catch (e: ActivityNotFoundException) {
+        Log.w(KarooTilehuntingExtension.TAG, "Could not open the settings app", e)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(onFinish: () -> Unit) {
@@ -222,6 +244,9 @@ fun MainScreen(onFinish: () -> Unit) {
     var showActivityLines by remember { mutableStateOf(false) }
     var disableTileAlertSound by remember { mutableStateOf(false) }
     var disableTileNotification by remember { mutableStateOf(false) }
+    var enableUpdateNotifications by remember { mutableStateOf(true) }
+    var karooConnected by remember { mutableStateOf(false) }
+    var updateInfo by remember { mutableStateOf<Updater.UpdateInfo?>(null) }
     var autoDismissMs by remember { mutableStateOf("10") }
     var playCustomTileAlertSound by remember { mutableStateOf(false) }
     val playCustomTileAlertSoundTunes = remember { mutableStateListOf<CustomTune>() }
@@ -259,6 +284,7 @@ fun MainScreen(onFinish: () -> Unit) {
                 .addAllCustomTileExploreSound(protoCustomSounds)
                 .setEnableCustomTileExploreSound(playCustomTileAlertSound)
                 .setDisableTileNotification(disableTileNotification)
+                .setDisableUpdateNotifications(!enableUpdateNotifications)
                 .setAutoDismissMs(autoDismissMs.toIntOrNull()?.coerceIn(1, 30) ?: 10)
                 .build()
         }
@@ -274,6 +300,24 @@ fun MainScreen(onFinish: () -> Unit) {
     LaunchedEffect(karooSystemService) {
         karooSystemService.connect {
             Log.d(KarooTilehuntingExtension.TAG, "Karoo system service connected")
+            karooConnected = it
+        }
+    }
+
+    LaunchedEffect(karooConnected, settingsStore) {
+        val settings = settingsStore ?: return@LaunchedEffect
+        if (settings.disableUpdateNotifications) {
+            updateInfo = null
+        } else if (karooConnected && updateInfo == null && !updateNotificationShown) {
+            try {
+                val result = Updater.checkForUpdate(ctx, karooSystemService)
+                if (result != null) {
+                    updateNotificationShown = true
+                    updateInfo = result
+                }
+            } catch (e: Exception) {
+                Log.w(KarooTilehuntingExtension.TAG, "Update check failed", e)
+            }
         }
     }
 
@@ -290,6 +334,7 @@ fun MainScreen(onFinish: () -> Unit) {
             disableTileAlertSound = settingsStore?.disableTileAlertSound == true
             playCustomTileAlertSound = settingsStore?.enableCustomTileExploreSound == true
             disableTileNotification = settingsStore?.disableTileNotification == true
+            enableUpdateNotifications = settingsStore?.disableUpdateNotifications != true
 
             val loadedSounds = settingsStore?.customTileExploreSoundList?.map { CustomTune(it.freq, it.duration) }
             if (loadedSounds != null) {
@@ -598,7 +643,38 @@ fun MainScreen(onFinish: () -> Unit) {
                             }
                         }
 
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Switch(checked = enableUpdateNotifications, onCheckedChange = { enableUpdateNotifications = it })
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("Enable update notifications")
+                        }
+
                         Spacer(modifier = Modifier.padding(30.dp))
+
+                        updateInfo?.let { update ->
+                            AlertDialog(
+                                onDismissRequest = { updateInfo = null },
+                                confirmButton = {
+                                    Button(onClick = {
+                                        updateInfo = null
+                                        openAppInfoInSettings(ctx)
+                                    }, modifier = Modifier.height(50.dp)) { Text("Update") }
+                                },
+                                dismissButton = {
+                                    Button(onClick = { updateInfo = null }, modifier = Modifier.height(50.dp)) { Text("Later") }
+                                },
+                                text = {
+                                    Column(modifier = Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        Text("A new version of karoo-tilehunting is available.")
+                                        Text("Version ${update.latestVersion} (you are running ${update.currentVersion}).")
+                                        if (update.releaseNotes != null) {
+                                            Text("Release notes:")
+                                            Text(update.releaseNotes)
+                                        }
+                                    }
+                                }
+                            )
+                        }
 
                         if (clearedRecentExploredTilesDialogVisible){
                             AlertDialog(onDismissRequest = { clearedRecentExploredTilesDialogVisible = false },
